@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marshê Studio 3D — Criações e produtos em 3D</title>
+  <meta name="description" content="Marshê Studio 3D em Terra de Areia/RS: produtos e peças personalizadas em impressão 3D. Veja o catálogo e faça seu pedido pelo WhatsApp.">
+  <meta property="og:title" content="Marshê Studio 3D — Criações e produtos em 3D">
+  <meta property="og:description" content="Veja o catálogo da Marshê Studio 3D e faça seu pedido pelo WhatsApp.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=43">
+</head>
+<body>
+
+  <!-- ============ FAIXA DE AVISO ============
+       PERSONALIZE: promoção fictícia por enquanto. Troque o texto abaixo pela
+       oferta real, ou apague este bloco inteiro para tirar a faixa do site. -->
+  <!-- A faixa e o cabeçalho ficam juntos neste bloco, que acompanha a
+       rolagem e mantém os dois sempre visíveis no topo. -->
+  <div class="topo-fixo">
+  <div class="aviso">
+    <a href="https://wa.me/5551981231848?text=Olá!%20É%20meu%20primeiro%20pedido%20e%20quero%20aproveitar%20o%20desconto" target="_blank" rel="noopener">
+      Primeiro pedido? <strong>10% de desconto</strong> na sua primeira peça
+    </a>
+  </div>
+
+  <!-- ============ CABEÇALHO ============ -->
+  <header class="topo">
+    <div class="container topo-inner">
+      <a href="#" class="logo">
+        <img src="assets/logo-branca.svg" alt="Marshê" class="logo-img">
+      </a>
+      <nav class="menu" id="menu">
+        <a href="#produtos">Produtos</a>
+        <a href="#personalizados">Personalizados</a>
+        <a href="#sobre">Sobre</a>
+        <a href="https://wa.me/5551981231848?text=Olá!%20Vi%20o%20site%20da%20Marshê%20e%20quero%20fazer%20um%20pedido" target="_blank" rel="noopener" class="btn btn-pequeno btn-whatsapp"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Fazer pedido</a>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+    </div>
+  </header>
+  </div><!-- /.topo-fixo -->
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-texto">
+        <h1>Criações em 3D que dão forma às suas ideias</h1>
+        <p class="hero-sub">
+          Produtos com acabamento impecável e cuidado em cada detalhe.
+          Conheça nosso catálogo e faça seu pedido em poucos cliques.
+        </p>
+        <div class="hero-ctas">
+          <a href="#produtos" class="btn btn-claro">Ver produtos</a>
+          <a href="https://wa.me/5551981231848?text=Olá!%20Vi%20o%20site%20da%20Marshê%20e%20quero%20falar%20com%20vocês" target="_blank" rel="noopener" class="btn btn-whatsapp"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Falar no WhatsApp</a>
+        </div>
+      </div>
+      <!-- ===== VITRINE DO TOPO =====
+           PERSONALIZE: troque as fotos e os nomes. Para preencher um quadro
+           vazio, substitua todo o conteúdo do <figure> pelo mesmo formato do
+           card principal (uma <img> + <figcaption>). Se preferir mostrar só
+           um produto, apague os dois <figure class="vitrine-item vazio">. -->
+      <div class="hero-arte">
+        <div class="vitrine">
+
+          <figure class="vitrine-item destaque">
+            <img src="assets/produto-mascara-obito.jpg" alt="Máscara do Obito impressa em 3D e pintada à mão">
+            <figcaption>
+              <strong>Máscara do Obito</strong>
+              <span>Impressa em 3D e pintada à mão</span>
+            </figcaption>
+          </figure>
+
+          <figure class="vitrine-item">
+            <img src="assets/produto-sao-miguel.jpg" alt="Estátua de São Miguel Arcanjo impressa em 3D">
+            <figcaption>
+              <strong>São Miguel Arcanjo</strong>
+              <span>Estátua com asas douradas</span>
+            </figcaption>
+          </figure>
+
+          <figure class="vitrine-item">
+            <img src="assets/produto-chaveiro-nossa-senhora.jpg" alt="Chaveiro de Nossa Senhora impresso em 3D">
+            <figcaption>
+              <strong>Chaveiro Nossa Senhora</strong>
+              <span>Com tassel e argola</span>
+            </figcaption>
+          </figure>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRODUTOS (POR CATEGORIA) ============
+       PERSONALIZE: para criar uma categoria nova, copie um bloco
+       <div class="grupo" data-categoria="..."> inteiro e acrescente um botão
+       correspondente na lista de filtros abaixo, com o mesmo data-categoria.
+       Para as fotos, salve o arquivo em assets/ e troque o src da <img>. -->
+  <section class="produtos" id="produtos">
+    <div class="container">
+      <h2>Nossos produtos</h2>
+      <p class="secao-sub">Peças que já produzimos e estão prontas para pedido. Escolha a sua e chame a gente no WhatsApp.</p>
+
+      <div class="ferramentas">
+      <div class="filtros" id="filtros" role="tablist" aria-label="Categorias de produtos">
+        <button class="filtro ativo" data-categoria="destaques">Destaques</button>
+        <button class="filtro" data-categoria="chaveiros">Chaveiros</button>
+        <button class="filtro" data-categoria="estatuetas">Estatuetas</button>
+        <button class="filtro" data-categoria="colecionaveis">Colecionáveis</button>
+        <button class="filtro" data-categoria="utilitarios">Utilitários</button>
+        <button class="filtro" data-categoria="todos">Ver tudo</button>
+      </div>
+
+        <label class="ordenacao">
+          <span>Ordenar por</span>
+          <select id="ordenar">
+            <option value="recentes">Mais recentes</option>
+            <option value="nome-az">Nome (A–Z)</option>
+            <option value="nome-za">Nome (Z–A)</option>
+            <option value="preco-menor">Menor preço</option>
+            <option value="preco-maior">Maior preço</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- PERSONALIZE: a classe "produto-destaque" marca quais peças aparecem
+           na abertura da seção. Acrescente ou remova essa classe do <article>
+           para escolher os destaques. -->
+      <div class="carrossel" id="carrossel">
+      <button class="carrossel-seta anterior" id="setaAnterior" type="button" aria-label="Ver produtos anteriores">&#8249;</button>
+      <div class="catalogo modo-carrossel" id="catalogo">
+
+      <!-- ===== CHAVEIROS ===== -->
+      <div class="grupo" data-categoria="chaveiros">
+        <h3 class="grupo-titulo">Chaveiros</h3>
+        <div class="grade-produtos">
+
+          <article class="produto produto-destaque" data-adicionado="2026-08-27">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/chaveiro-nossa-senhora.jpg" alt="Chaveiro de Nossa Senhora impresso em 3D"></div>
+            <div class="produto-info">
+              <h4>Chaveiro Nossa Senhora</h4>
+              <p>Chaveiro impresso em 3D com acabamento pintado à mão, argola e tassel decorativo.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 15,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20no%20Chaveiro%20Nossa%20Senhora" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-20">
+            <div class="produto-foto">🔑</div>
+            <div class="produto-info">
+              <h4>Novo chaveiro</h4>
+              <p>Descrição curta: o que é, tamanho, material e o que o torna especial.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 00,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20nos%20chaveiros" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- ===== ESTATUETAS ===== -->
+      <div class="grupo" data-categoria="estatuetas">
+        <h3 class="grupo-titulo">Estatuetas</h3>
+        <div class="grade-produtos">
+
+          <article class="produto produto-destaque" data-adicionado="2026-08-27">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/sao-miguel.jpg" alt="Estátua de São Miguel Arcanjo impressa em 3D"></div>
+            <div class="produto-info">
+              <h4>São Miguel Arcanjo</h4>
+              <p>Estátua com base circular e asas em destaque. Peça de decoração com muito detalhe.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 35,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20na%20estátua%20de%20São%20Miguel%20Arcanjo" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-20">
+            <div class="produto-foto">🗿</div>
+            <div class="produto-info">
+              <h4>Nova estatueta</h4>
+              <p>Descrição curta: o que é, tamanho, material e o que o torna especial.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 00,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20nas%20estatuetas" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/nossa-senhora-aparecida.jpg" alt="Estátua de Nossa Senhora Aparecida impressa em 3D"></div>
+            <div class="produto-info">
+              <h4>Nossa Senhora Aparecida</h4>
+              <p>Manto com flores em relevo, coroa dourada e nome gravado na base. Acabamento em dois tons.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 30,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20na%20Nossa%20Senhora%20Aparecida" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/nossa-senhora-guadalupe.jpg" alt="Estátua de Nossa Senhora de Guadalupe impressa em 3D"></div>
+            <div class="produto-info">
+              <h4>Nossa Senhora de Guadalupe</h4>
+              <p>Imagem em relevo com resplendor ao redor e base de rosas. Peça de mesa ou altar.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 35,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20na%20Nossa%20Senhora%20de%20Guadalupe" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/nossa-senhora-terco.jpg" alt="Porta-terço e pia de água benta de Nossa Senhora, impresso em 3D"></div>
+            <div class="produto-info">
+              <h4>Porta-terço Nossa Senhora</h4>
+              <p>Imagem com coroa e manto que guarda o terço na base e serve como pia de água benta.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 35,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20no%20Porta-terço%20Nossa%20Senhora" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/nossa-senhora-minimalista.jpg" alt="Estátua minimalista de Nossa Senhora impressa em 3D"></div>
+            <div class="produto-info">
+              <h4>Nossa Senhora minimalista</h4>
+              <p>Versão de traço limpo em azul e branco, com auréola e terço dourados.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 25,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20na%20Nossa%20Senhora%20minimalista" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- ===== COLECIONÁVEIS ===== -->
+      <div class="grupo" data-categoria="colecionaveis">
+        <h3 class="grupo-titulo">Colecionáveis e cosplay</h3>
+        <div class="grade-produtos">
+
+          <article class="produto produto-destaque" data-adicionado="2026-08-27">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/mascara-obito.jpg" alt="Máscara do Obito impressa em 3D e pintada à mão"></div>
+            <div class="produto-info">
+              <h4>Máscara do Obito</h4>
+              <p>Máscara em tamanho real, impressa em 3D, lixada e pintada à mão, com alça ajustável.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 139,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20na%20Máscara%20do%20Obito" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-20">
+            <div class="produto-foto">🎭</div>
+            <div class="produto-info">
+              <h4>Novo colecionável</h4>
+              <p>Descrição curta: o que é, tamanho, material e o que o torna especial.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 00,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20nos%20colecionáveis" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- ===== UTILITÁRIOS ===== -->
+      <div class="grupo" data-categoria="utilitarios">
+        <h3 class="grupo-titulo">Utilitários</h3>
+        <div class="grade-produtos">
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/marcadores-terco.jpg" alt="Rosário Fidget impresso em 3D, frente e verso"></div>
+            <div class="produto-info">
+              <h4>Rosário Fidget</h4>
+              <p>Rosário de bolso para rezar com o toque, estampado dos dois lados, com tassel. Escolha a cor do cordão.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 15,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20interesse%20no%20Rosário%20Fidget" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="produto" data-adicionado="2026-08-29">
+            <div class="produto-foto"><img src="assets/Fotos%20Produtos/marcador-rejoc.jpg" alt="Marcador de página personalizado da Família REJOC"></div>
+            <div class="produto-info">
+              <h4>Marcador personalizado</h4>
+              <p>Feito com o nome, a logo ou o símbolo do seu grupo, pastoral ou empresa.</p>
+              <div class="produto-rodape">
+                <span class="preco">R$ 10,00</span>
+                <a class="btn btn-pequeno btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Quero%20um%20marcador%20de%20página%20personalizado" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir</a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      </div><!-- /.catalogo -->
+      <button class="carrossel-seta proxima" id="setaProxima" type="button" aria-label="Ver mais produtos">&#8250;</button>
+      </div><!-- /.carrossel -->
+
+      <p class="catalogo-nota" id="catalogoNota">
+        Arraste para o lado ou use as setas para ver mais peças.
+        <button class="link-botao" id="verTudo">Ver o catálogo completo</button>
+        ou escolha uma categoria acima.
+      </p>
+
+    </div>
+  </section>
+
+  <!-- ============ PROJETOS PERSONALIZADOS ============ -->
+  <section class="personalizados" id="personalizados">
+    <div class="container">
+      <div class="painel">
+        <div class="painel-topo">
+          <h2>Tem uma ideia? A gente transforma em 3D</h2>
+          <p class="painel-sub">
+            Não precisa ser um produto do nosso catálogo. Traga uma referência,
+            uma imagem, um desenho ou só o conceito na cabeça — avaliamos juntos
+            e desenvolvemos uma peça exclusiva, feita do jeito que você procura.
+          </p>
+        </div>
+
+        <ol class="passos">
+          <li class="passo">
+            <img src="assets/passo-1.png?v=2" alt="" class="passo-img">
+            <span class="passo-num">1</span>
+            <h3>Você traz a ideia</h3>
+            <p>Uma foto, um desenho, um link de referência ou apenas a descrição do que imaginou.</p>
+          </li>
+          <li class="passo">
+            <img src="assets/passo-2.png?v=3" alt="" class="passo-img">
+            <span class="passo-num">2</span>
+            <h3>Avaliamos juntos</h3>
+            <p>Analisamos a viabilidade e combinamos material, tamanho, acabamento, prazo e valor.</p>
+          </li>
+          <li class="passo">
+            <img src="assets/passo-3.png?v=2" alt="" class="passo-img">
+            <span class="passo-num">3</span>
+            <h3>Vira uma peça exclusiva</h3>
+            <p>Modelamos, imprimimos e finalizamos o projeto — único, criado só para você.</p>
+          </li>
+        </ol>
+
+        <!-- ===== EXEMPLOS DE PROJETOS JÁ FEITOS =====
+             PROVISÓRIO: por enquanto reaproveitando as fotos do catálogo, só
+             para a área não ficar vazia. Quando tiver fotos de encomendas
+             personalizadas, troque o src das <img> e as legendas.
+             Duplique ou remova blocos .exemplo à vontade — a grade se ajusta. -->
+        <div class="exemplos">
+          <h3 class="exemplos-titulo">Alguns projetos que já criamos assim</h3>
+          <div class="exemplos-grade">
+
+            <figure class="exemplo">
+              <div class="exemplo-foto"><img src="assets/Fotos%20Produtos/mascara-obito.jpg" alt="Máscara do Obito impressa em 3D"></div>
+              <figcaption>Máscara em tamanho real, feita a partir de uma referência trazida pelo cliente.</figcaption>
+            </figure>
+
+            <figure class="exemplo">
+              <div class="exemplo-foto"><img src="assets/Fotos%20Produtos/sao-miguel.jpg" alt="Estátua de São Miguel Arcanjo impressa em 3D"></div>
+              <figcaption>Estátua religiosa com pintura em dois tons e base personalizada.</figcaption>
+            </figure>
+
+            <figure class="exemplo">
+              <div class="exemplo-foto"><img src="assets/Fotos%20Produtos/chaveiro-nossa-senhora.jpg" alt="Chaveiro de Nossa Senhora impresso em 3D"></div>
+              <figcaption>Chaveiro em miniatura, pensado como lembrancinha para eventos.</figcaption>
+            </figure>
+
+          </div>
+        </div>
+
+        <div class="painel-cta">
+          <!-- Número do WhatsApp: 5551981231848 (DDI 55 + DDD 51 + número) -->
+          <a class="btn btn-grande btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Tenho%20uma%20ideia%20de%20projeto%20personalizado%20e%20quero%20conversar" target="_blank" rel="noopener">
+            <img src="assets/whatsapp.svg" alt="" class="wa-icone">Contar minha ideia
+          </a>
+          <p class="painel-nota">Orçamento sem compromisso, respondemos rápido.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SOBRE ============ -->
+  <section class="sobre" id="sobre">
+    <div class="container sobre-inner">
+      <div class="sobre-arte" aria-hidden="true">
+        <img src="assets/logo-laranja.svg" alt="" class="sobre-logo">
+      </div>
+      <div class="sobre-texto">
+        <h2>Sobre a Marshê</h2>
+        <p>
+          A Marshê nasceu de uma ideia simples: &ldquo;poder criar tudo aquilo
+          que vem na cabeça&rdquo;. Localizada em Terra de Areia/RS e fundada
+          por Marcelo Bastos e Sheila Barros, tem o propósito de criar produtos
+          diferentes, personalizados e fora do comum.
+        </p>
+        <p>
+          Seja a partir de uma referência, de um desenho, de uma imagem, de uma
+          conversa ou até de uma ideia que ainda não existe fisicamente,
+          buscamos transformar isso em algo real por meio da impressão 3D.
+        </p>
+        <p>
+          Além dos produtos que desenvolvemos, também criamos peças sob medida,
+          adaptadas de acordo com a necessidade e a ideia de cada cliente.
+        </p>
+        <p>
+          Para nós, a impressão 3D é justamente isso: a possibilidade de
+          transformar uma ideia em algo que você pode ver, tocar e ter nas mãos.
+        </p>
+        <p class="sobre-lema">Pensou? A gente transforma em 3D.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTATO / CTA FINAL ============ -->
+  <section class="contato" id="contato">
+    <div class="container contato-inner">
+      <h2>Faça seu pedido</h2>
+      <p>Chame a gente no WhatsApp, diga o que você quer e combinamos tudo na hora.</p>
+      <!-- Número do WhatsApp: 5551981231848 (DDI 55 + DDD 51 + número) -->
+      <a class="btn btn-grande btn-whatsapp" href="https://wa.me/5551981231848?text=Olá!%20Vi%20o%20site%20da%20Marshê%20e%20quero%20fazer%20um%20pedido" target="_blank" rel="noopener">
+        <img src="assets/whatsapp.svg" alt="" class="wa-icone">Pedir pelo WhatsApp
+      </a>
+      <div class="redes">
+        <a href="https://www.instagram.com/marshe_studio3d/" target="_blank" rel="noopener">
+          <svg class="icone-rede" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="19" height="19" rx="5.4"/>
+            <circle cx="12" cy="12" r="4.2"/>
+            <circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/>
+          </svg>
+          @marshe_studio3d
+        </a>
+        <span>·</span>
+        <a href="mailto:marshe3d@gmail.com">
+          <svg class="icone-rede" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2.5" y="4.5" width="19" height="15" rx="3"/>
+            <path d="m3.5 7.5 7.7 5.2a1.5 1.5 0 0 0 1.6 0l7.7-5.2"/>
+          </svg>
+          marshe3d@gmail.com
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RODAPÉ ============ -->
+  <footer class="rodape">
+    <div class="container rodape-inner">
+      <img src="assets/logo-branca.svg" alt="Marshê" class="rodape-logo">
+      <p>© 2026 Marshê Studio 3D - Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=8"></script>
+</body>
+</html>
