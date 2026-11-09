@@ -141,10 +141,16 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   Antes de usar pela primeira vez, rode **uma vez** o arquivo
   `supabase/produtos-detalhes.sql` no SQL Editor (New query → colar → Run).
 
+- **Etiqueta no card** (em Editar detalhes): um texto curto (até 24 letras,
+  ex.: LANÇAMENTO) com cor à escolha, como **faixa na foto** (igual à da Black
+  Marshê, que ela substitui naquele produto) ou **selo no canto**. Tem prévia.
+  Antes de usar pela primeira vez, rode **uma vez** `supabase/etiqueta.sql`.
+
 - **Fotos do produto** (no mesmo cartão): **Adicionar fotos** (abre a janela
-  de enquadrar no formato da loja, 4:5: arraste, dê zoom, gire), **Enquadrar**
-  uma foto que já está lá, **←/→** para mudar a ordem, **Tornar principal** e
-  **×** para remover. A primeira é a que aparece no card. As fotos enviadas
+  de enquadrar no formato da loja, 4:5: arraste, aproxime com dois dedos ou a
+  roda do mouse, **Foto inteira** com fundo branco, **Centralizar**, **Girar**),
+  **Enquadrar** uma foto que já está lá, arraste pelo **⠿** para mudar a ordem
+  (no teclado, setas), **★ Principal** e **×** para remover. A primeira é a que aparece no card. As fotos enviadas
   ficam no Storage do Supabase (pasta "produtos"), em 960 e 480 px.
   **Voltar às fotos originais do arquivo** desfaz tudo.
   Antes de usar pela primeira vez, rode **uma vez** o arquivo

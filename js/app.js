@@ -67,11 +67,13 @@
     + (isOffer(p) ? `<s class="price__old">${brlShort(p.precoDe)}</s> ` : "") + brlShort(minPrice(p));
   const needsChoice = (p) => consulta(p) || opts(p).length > 0 || !!p.personalizavel;
 
+  const etqStyle = (e) => `background:${e.fundo};color:${e.cor}`;
   const badgeHtml = (p) => {
     const selos = [...(isOffer(p) ? [`-${offPct(p)}% Black Marshê`] : []), ...(p.selos || [])];
-    if (!selos.length) return "";
+    const etq = p.etiqueta ? `<span class="badge" style="${etqStyle(p.etiqueta)}">${esc(p.etiqueta.texto)}</span>` : "";
+    if (!selos.length) return etq ? `<div class="badges">${etq}</div>` : "";
     const cls = (s) => (/black (friday|marsh)/i.test(s) ? "badge badge--bf" : /mais pedido/i.test(s) ? "badge badge--hot" : /novo/i.test(s) ? "badge badge--new" : "badge");
-    return `<div class="badges">${selos.map((s) => `<span class="${cls(s)}">${esc(s)}</span>`).join("")}</div>`;
+    return `<div class="badges">${etq}${selos.map((s) => `<span class="${cls(s)}">${esc(s)}</span>`).join("")}</div>`;
   };
 
   /* ==========================================================
@@ -258,14 +260,18 @@
     const selo = p.selos.find((s) => /mais pedido|novo/i.test(s));
     const tag = isOffer(p) ? `<span class="card__tag card__tag--off">-${offPct(p)}%</span>`
       : selo ? `<span class="card__tag${/novo/i.test(selo) ? " card__tag--new" : ""}">${esc(selo)}</span>` : "";
+    const etq = p.etiqueta;
+    const seloEtq = etq?.estilo === "selo" ? `<span class="card__tag card__tag--etq" style="${etqStyle(etq)}">${esc(etq.texto)}</span>` : "";
+    const tags = seloEtq && tag ? `<span class="card__tags">${seloEtq}${tag}</span>` : seloEtq || tag;
+    const faixa = etq?.estilo === "faixa" ? `<span class="card__band" style="${etqStyle(etq)}">${esc(etq.texto)}</span>` : isOffer(p) ? `<span class="card__band">Black Marshê</span>` : "";
     const fav = favs.has(p.id);
     const v = minPrice(p);
     return `<article class="card" style="--i:${i}" data-id="${esc(p.id)}">
       <div class="card__media">
-        ${tag}
+        ${tags}
         <button type="button" class="card__fav" data-fav="${esc(p.id)}" aria-pressed="${fav}" aria-label="${fav ? "Remover dos" : "Adicionar aos"} favoritos: ${esc(p.nome)}"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
         ${media}
-        ${isOffer(p) ? `<span class="card__band">Black Marshê</span>` : ""}
+        ${faixa}
       </div>
       <div class="card__body">
         ${p.itensKit?.length ? `<span class="card__kit">Kit</span>` : ""}
@@ -1162,6 +1168,8 @@
       if (Array.isArray(l.selos)) p.selos = [...(p.selos || []).filter((x) => !/^(novo|mais pedido)$/i.test(x)), ...l.selos];
       if (l.personalizavel != null) { if (l.personalizavel) p.personalizavel = l.personalizavel; else delete p.personalizavel; }
       if (l.ordem != null) p.destaque = +l.ordem - 0.5;   // ordem do painel ganha no empate com a do arquivo
+      const e = l.etiqueta, hex = /^#[0-9A-Fa-f]{6}$/;
+      if (e && typeof e.texto === "string" && e.texto.trim() && e.texto.length <= 24 && hex.test(e.fundo) && hex.test(e.cor)) p.etiqueta = { texto: e.texto.trim(), fundo: e.fundo, cor: e.cor, estilo: e.estilo === "selo" ? "selo" : "faixa" };
       if (Array.isArray(l.fotos) && l.fotos.length) p.fotos = l.fotos.filter((u) => typeof u === "string" && /^(https:\/\/|assets\/)/.test(u));
       return true;
     });

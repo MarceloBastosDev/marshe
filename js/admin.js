@@ -64,8 +64,8 @@ function render() {
   app.innerHTML = `
     <nav class="adm__tabs" role="tablist">
       <button type="button" role="tab" aria-selected="${aba === "pedidos"}" data-aba="pedidos">Pedidos</button>
-      <button type="button" role="tab" aria-selected="${aba === "clientes"}" data-aba="clientes">Clientes e pontos</button>
-      <button type="button" role="tab" aria-selected="${aba === "precos"}" data-aba="precos">Produtos e preços</button>
+      <button type="button" role="tab" aria-selected="${aba === "clientes"}" data-aba="clientes">Clientes<span class="adm__tab-x"> e pontos</span></button>
+      <button type="button" role="tab" aria-selected="${aba === "precos"}" data-aba="precos">Produtos<span class="adm__tab-x"> e preços</span></button>
     </nav>
     <section data-conteudo><p>Carregando…</p></section>`;
   aba === "pedidos" ? renderPedidos() : aba === "precos" ? renderPrecos() : renderClientes();
@@ -105,7 +105,12 @@ let catalogo = null, buscaProd = "";
 const reais = (v) => (v == null || v === "" ? "" : String(v).replace(".", ","));
 // aceita "12", "12,5", "12,50", "1.234,56" e "R$ 12,00"
 const numero = (s) => { let t = String(s ?? "").trim().replace(/\s|R\$/g, ""); if (t.includes(",")) t = t.replace(/\./g, "").replace(",", "."); return t === "" ? null : Number(t); };
-const CAMPOS = ["nome", "descricao", "categorias", "selos", "personalizavel", "ordem"];
+const CAMPOS = ["nome", "descricao", "categorias", "selos", "personalizavel", "ordem", "etiqueta"];
+// cores prontas da etiqueta (fundo, texto)
+const CORES = [["Preto", "#111111", "#FFFFFF"], ["Laranja", "#D63803", "#FFFFFF"], ["Verde", "#0F7F3A", "#FFFFFF"], ["Vermelho", "#C8102E", "#FFFFFF"], ["Azul", "#1D4ED8", "#FFFFFF"], ["Rosa", "#DB2777", "#FFFFFF"], ["Roxo", "#7C3AED", "#FFFFFF"], ["Dourado", "#E8B53A", "#111111"], ["Branco", "#FFFFFF", "#111111"]];
+const HEX = /^#[0-9A-Fa-f]{6}$/;
+// texto preto ou branco, o que tiver mais contraste com o fundo
+const corTexto = (hex) => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) > 160 ? "#111111" : "#FFFFFF"; };
 const SELOS = ["Novo", "Mais pedido"];
 const abertos = new Set();
 const abertosFotos = new Set();
@@ -118,7 +123,8 @@ function atual(p, l) {
     categorias: l?.categorias ?? p.categorias ?? [],
     selos: l?.selos ?? (p.selos || []).filter((x) => SELOS.includes(x)),
     personalizavel: l?.personalizavel ?? p.personalizavel ?? "",
-    ordem: l?.ordem ?? null
+    ordem: l?.ordem ?? null,
+    etiqueta: l?.etiqueta ?? null
   };
 }
 function todasCategorias() {
@@ -135,9 +141,10 @@ async function renderPrecos() {
     const linhas = ok(await sb.from("precos").select("*"));
     const porId = new Map(linhas.map((l) => [l.produto_id, l]));
     ajustes = porId;
+    queueMicrotask(() => document.querySelectorAll("[data-etq]").forEach(previaEtiqueta));
     const q = buscaProd.toLowerCase();
     const lista = catalogo.filter((p) => { const d = atual(p, porId.get(p.id)); return !q || (p.nome + " " + d.nome + " " + d.categorias.join(" ")).toLowerCase().includes(q); });
-    box.innerHTML = `<p class="adm__hint">Altere e clique em <strong>Salvar</strong>: a loja atualiza na hora. Deixe <strong>Sob consulta</strong> marcado para mostrar “Pedir orçamento” em vez do preço. <strong>Preço antigo</strong> maior que o preço vira oferta (riscado, com % de desconto e no filtro Black Marshê). Em <strong>Editar detalhes do produto</strong> você muda nome, descrição, categorias, selos, personalização e a ordem na vitrine.</p>
+    box.innerHTML = `<details class="adm__hint"><summary>Como funciona esta aba</summary><p>Altere e clique em <strong>Salvar</strong>: a loja atualiza na hora. Deixe <strong>Sob consulta</strong> marcado para mostrar “Pedir orçamento” em vez do preço. <strong>Preço antigo</strong> maior que o preço vira oferta (riscado, com % de desconto e no filtro Black Marshê). Em <strong>Editar detalhes do produto</strong> você muda nome, descrição, categorias, selos, personalização e a ordem na vitrine.</p></details>
       <form class="adm__search" data-busca-prod><input type="search" name="q" placeholder="Buscar produto" value="${esc(buscaProd)}"><button class="btn btn--primary" type="submit">Buscar</button></form>
       <div class="adm__list">${lista.map((p) => {
         const l = porId.get(p.id);
@@ -160,7 +167,7 @@ async function renderPrecos() {
             <button class="btn btn--primary" type="submit">Salvar</button>
           </div>
           <details class="adm__more"${abertos.has(p.id) ? " open" : ""}>
-            <summary>Editar detalhes do produto <small>nome, descrição, categorias, selos, personalização e ordem</small></summary>
+            <summary>Editar detalhes do produto <small>nome, descrição, categorias, selos, etiqueta, personalização e ordem</small></summary>
             <div class="adm__det">
               <label class="adm__wide">Nome do produto<input name="nome" maxlength="80" required value="${esc(d.nome)}"></label>
               <label class="adm__wide">Descrição<textarea name="descricao" rows="3" maxlength="700">${esc(d.descricao)}</textarea><small class="adm__count" data-count>${d.descricao.length}/700</small></label>
@@ -173,6 +180,21 @@ async function renderPrecos() {
               </div></fieldset>
               <label>Ordem na vitrine<input name="ordem" type="number" min="1" max="999" inputmode="numeric" placeholder="automática" value="${d.ordem ?? ""}"><small>1 aparece primeiro</small></label>
               <label class="adm__wide">Campo de personalização<input name="personalizavel" maxlength="120" placeholder="Deixe vazio se a peça não é personalizável" value="${esc(d.personalizavel)}"><small>Texto que aparece acima do campo, ex.: “Nome que vai na peça”</small></label>
+              <fieldset class="adm__wide adm__etq" data-etq>
+                <legend>Etiqueta no card <small>opcional, ex.: LANÇAMENTO, DIA DAS MÃES, ÚLTIMAS UNIDADES</small></legend>
+                <div class="adm__etq-grid">
+                  <label>Texto<input name="etqtexto" maxlength="24" placeholder="Sem etiqueta" value="${esc(d.etiqueta?.texto || "")}"></label>
+                  <div class="adm__etq-estilo" role="radiogroup" aria-label="Onde aparece">
+                    <label><input type="radio" name="etqestilo" value="faixa" ${d.etiqueta?.estilo !== "selo" ? "checked" : ""}><span>Faixa na foto</span></label>
+                    <label><input type="radio" name="etqestilo" value="selo" ${d.etiqueta?.estilo === "selo" ? "checked" : ""}><span>Selo no canto</span></label>
+                  </div>
+                </div>
+                <div class="adm__cores" role="radiogroup" aria-label="Cor da etiqueta">
+                  ${CORES.map(([nome, fundo, cor]) => `<label class="adm__cor" title="${nome}"><input type="radio" name="etqcor" value="${fundo}" data-texto="${cor}" ${(d.etiqueta?.fundo || "#111111").toUpperCase() === fundo ? "checked" : ""}><span style="background:${fundo}" aria-hidden="true"></span><b class="sr">${nome}</b></label>`).join("")}
+                  <label class="adm__cor adm__cor--livre" title="Outra cor"><input type="radio" name="etqcor" value="livre" ${d.etiqueta && !CORES.some(([, f]) => f === d.etiqueta.fundo.toUpperCase()) ? "checked" : ""}><span aria-hidden="true"><input type="color" name="etqlivre" value="${esc(d.etiqueta?.fundo || "#FB4405")}" aria-label="Escolher outra cor"></span><b class="sr">Outra cor</b></label>
+                </div>
+                <div class="adm__etq-prev" aria-hidden="true"><div class="adm__etq-foto">${fotosDe(p, l)[0] ? `<img src="${esc(miniatura(fotosDe(p, l)[0]))}" alt="" loading="lazy">` : ""}<span data-etq-prev></span></div><small>Prévia</small></div>
+              </fieldset>
               <div class="adm__det-foot">
                 <button class="btn btn--primary" type="submit">Salvar alterações</button>
                 ${editado ? `<button class="link-btn" type="button" data-restaurar="${esc(p.id)}">Voltar aos dados originais do arquivo</button>` : ""}
@@ -184,6 +206,24 @@ async function renderPrecos() {
         </form>`;
       }).join("")}</div>`;
   } catch (e) { box.innerHTML = `<p class="adm__msg">Erro: ${esc(e.message)}. Rode o supabase/schema.sql atualizado no SQL Editor.</p>`; }
+}
+function lerEtiqueta(f) {
+  const texto = (f.etqtexto?.value || "").trim().replace(/\s+/g, " ");
+  if (!texto) return null;
+  const sel = f.querySelector("[name=etqcor]:checked");
+  const fundo = (!sel || sel.value === "livre" ? f.etqlivre.value : sel.value).toUpperCase();
+  if (!HEX.test(fundo)) throw new Error("Cor da etiqueta inválida.");
+  return { texto, fundo, cor: sel && sel.value !== "livre" ? sel.dataset.texto : corTexto(fundo), estilo: f.querySelector("[name=etqestilo]:checked")?.value === "selo" ? "selo" : "faixa" };
+}
+// prévia ao vivo da etiqueta
+function previaEtiqueta(box) {
+  const f = box.closest("form"), prev = box.querySelector("[data-etq-prev]");
+  let e = null; try { e = lerEtiqueta(f); } catch {}
+  prev.hidden = !e;
+  if (!e) return;
+  prev.textContent = e.texto;
+  prev.className = "adm__etq-tag adm__etq-tag--" + e.estilo;
+  prev.style.background = e.fundo; prev.style.color = e.cor;
 }
 async function salvarPreco(f) {
   const p = catalogo.find((x) => x.id === f.dataset.preco);
@@ -223,9 +263,11 @@ async function salvarPreco(f) {
     categorias: mesmaLista(categorias, orig.categorias) ? null : categorias,
     selos: mesmaLista(selos, orig.selos) ? null : selos,
     personalizavel: personalizavel === orig.personalizavel ? null : personalizavel,
-    ordem
+    ordem,
+    etiqueta: lerEtiqueta(f)
   };
   // Se o banco ainda não tem as colunas novas, salvar só o preço continua funcionando
+  if (det.etiqueta == null && ![...ajustes.values()].some((x) => "etiqueta" in x)) delete det.etiqueta;   // banco ainda sem a coluna
   const bancoTemDetalhes = [...ajustes.values()].some((l) => "nome" in l);
   const mudouDetalhe = Object.values(det).some((v) => v != null);
   ok(await sb.from("precos").upsert({ produto_id: p.id, preco, preco_de: de, sob_consulta: sob, opcoes, oculto: f.oculto.checked, ...(bancoTemDetalhes || mudouDetalhe ? det : {}) }));
@@ -244,16 +286,15 @@ function fotosHtml(p, l) {
   const proprias = Array.isArray(l?.fotos) && l.fotos.length;
   return `<details class="adm__more adm__fotobox" data-fotos="${esc(p.id)}"${abertosFotos.has(p.id) ? " open" : ""}>
     <summary>Fotos do produto <small>${fotos.length} ${fotos.length === 1 ? "foto" : "fotos"} · adicionar, remover, ordenar e enquadrar</small></summary>
-    <p class="adm__fotohint">A primeira foto é a principal (aparece no card). Todas ficam no formato da loja (4:5). Use <strong>Enquadrar</strong> para escolher o pedaço da foto que aparece.</p>
+    <p class="adm__fotohint">A primeira é a <strong>principal</strong> (aparece no card). Arraste pelo <strong>⠿</strong> para mudar a ordem.</p>
     <div class="adm__fotos">
-      ${fotos.map((u, i) => `<figure class="adm__foto">
-        <img src="${esc(miniatura(u))}" alt="Foto ${i + 1}" loading="lazy">
-        ${i === 0 ? `<span class="adm__foto-tag">Principal</span>` : `<button type="button" class="adm__foto-main" data-fa="principal" data-i="${i}">Tornar principal</button>`}
+      ${fotos.map((u, i) => `<figure class="adm__foto" data-idx="${i}">
+        <img src="${esc(miniatura(u))}" alt="Foto ${i + 1}" loading="lazy" draggable="false">
+        ${i === 0 ? `<span class="adm__foto-tag">Principal</span>` : `<button type="button" class="adm__foto-main" data-fa="principal" data-i="${i}" aria-label="Tornar a foto ${i + 1} principal">&#9733; Principal</button>`}
+        <button type="button" class="adm__foto-del" data-fa="del" data-i="${i}" aria-label="Remover foto ${i + 1}" title="Remover">&times;</button>
         <div class="adm__foto-acts">
-          <button type="button" data-fa="esq" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Mover para a esquerda" title="Mover para a esquerda">&larr;</button>
-          <button type="button" data-fa="crop" data-i="${i}">Enquadrar</button>
-          <button type="button" data-fa="del" data-i="${i}" aria-label="Remover foto ${i + 1}" title="Remover">&times;</button>
-          <button type="button" data-fa="dir" data-i="${i}" ${i === fotos.length - 1 ? "disabled" : ""} aria-label="Mover para a direita" title="Mover para a direita">&rarr;</button>
+          ${fotos.length > 1 ? `<button type="button" class="adm__foto-drag" data-drag data-i="${i}" aria-label="Mudar a ordem da foto ${i + 1}: arraste, ou use as setas do teclado" title="Arraste para mudar a ordem"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button>` : ""}
+          <button type="button" class="adm__foto-crop" data-fa="crop" data-i="${i}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Enquadrar</button>
         </div>
       </figure>`).join("")}
       ${fotos.length < MAX_FOTOS ? `<label class="adm__foto-add"><input type="file" accept="image/*" multiple data-fa-add><span><b>+</b> Adicionar fotos</span><small>JPG, PNG ou WebP</small></label>` : ""}
@@ -289,7 +330,8 @@ async function acaoFoto(box, acao, i, arquivos) {
   const status = (t) => { if (msg) msg.textContent = t; };
   abertosFotos.add(p.id);
   try {
-    if (acao === "esq" || acao === "dir") { const j = acao === "esq" ? i - 1 : i + 1; [fotos[i], fotos[j]] = [fotos[j], fotos[i]]; await salvarFotos(p, fotos); aviso("Ordem das fotos salva."); }
+    if (acao === "ordem") { const nova = arquivos.map((k) => fotos[k]); if (nova.some((x) => !x)) return renderPrecos(); await salvarFotos(p, nova); aviso("Ordem das fotos salva."); }
+    else if (acao === "esq" || acao === "dir") { const j = acao === "esq" ? i - 1 : i + 1; [fotos[i], fotos[j]] = [fotos[j], fotos[i]]; await salvarFotos(p, fotos); aviso("Ordem das fotos salva."); }
     else if (acao === "principal") { fotos.unshift(...fotos.splice(i, 1)); await salvarFotos(p, fotos); aviso("Foto principal trocada."); }
     else if (acao === "del") {
       if (fotos.length === 1) throw new Error("O produto precisa de pelo menos uma foto. Adicione outra antes de remover esta.");
@@ -348,33 +390,47 @@ async function enquadrar(src, titulo = "") {
   const img = await carregarImagem(src);
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
   const W = 480, H = 600;
+  const toque = matchMedia("(pointer: coarse)").matches;
   const dlg = document.createElement("dialog");
   dlg.className = "crop";
-  dlg.innerHTML = `<form method="dialog" class="crop__in">
-      <header class="crop__head"><strong>Enquadrar foto</strong>${titulo ? `<small>${esc(titulo)}</small>` : ""}</header>
-      <div class="crop__stage"><canvas width="${W}" height="${H}" aria-label="Arraste para posicionar a foto"></canvas><span class="crop__grid" aria-hidden="true"></span></div>
-      <p class="crop__tip">Arraste a foto para posicionar. Use o controle ou a roda do mouse para aproximar.</p>
+  dlg.innerHTML = `<div class="crop__in">
+      <header class="crop__head">
+        <div><strong>Enquadrar foto</strong>${titulo ? `<small>${esc(titulo)}</small>` : ""}</div>
+        <button type="button" class="crop__x" data-cancel aria-label="Cancelar">&times;</button>
+      </header>
+      <div class="crop__stage"><canvas width="${W}" height="${H}" tabindex="0" aria-label="Foto: arraste para posicionar"></canvas><span class="crop__grid" aria-hidden="true"></span></div>
+      <p class="crop__tip">${toque ? "Arraste com um dedo · use <b>dois dedos</b> para aproximar ou afastar · toque duas vezes para centralizar" : "Arraste para posicionar · <b>roda do mouse</b> para aproximar · clique duas vezes para centralizar"}</p>
+      <div class="crop__zoom">
+        <button type="button" class="crop__ic" data-zstep="-1" aria-label="Afastar">&minus;</button>
+        <input type="range" step="any" data-z aria-label="Zoom">
+        <button type="button" class="crop__ic" data-zstep="1" aria-label="Aproximar">+</button>
+      </div>
       <div class="crop__tools">
-        <label class="crop__zoom">Zoom<input type="range" min="1" max="4" step="0.01" value="1" data-z></label>
-        <button type="button" class="btn btn--ghost" data-rot>Girar</button>
-        <button type="button" class="btn btn--ghost" data-fit>Centralizar</button>
+        <button type="button" class="crop__tool" data-fit><span aria-hidden="true">⤢</span>Preencher</button>
+        <button type="button" class="crop__tool" data-whole><span aria-hidden="true">▣</span>Foto inteira</button>
+        <button type="button" class="crop__tool" data-center><span aria-hidden="true">✛</span>Centralizar</button>
+        <button type="button" class="crop__tool" data-rot><span aria-hidden="true">↻</span>Girar</button>
       </div>
       <footer class="crop__foot">
         <button type="button" class="btn btn--ghost" data-cancel>Cancelar</button>
         <button type="button" class="btn btn--primary" data-ok>Usar esta foto</button>
       </footer>
-    </form>`;
+    </div>`;
   document.body.appendChild(dlg);
   const cv = dlg.querySelector("canvas"), ctx = cv.getContext("2d"), zoom = dlg.querySelector("[data-z]");
-  let rot = 0, z = 1, cx, cy;
+  let rot = 0, z = 1, cx = 0, cy = 0;
   const dims = () => (rot % 2 ? [ih, iw] : [iw, ih]);
-  const escala = (w = W, h = H) => { const [rw, rh] = dims(); return Math.max(w / rw, h / rh) * z; };
+  // z = 1: a foto cobre a moldura toda; z < 1: a foto inteira aparece, com fundo branco
+  const cobre = (w = W, h = H) => { const [rw, rh] = dims(); return Math.max(w / rw, h / rh); };
+  const zMin = () => { const [rw, rh] = dims(); return Math.min(W / rw, H / rh) / cobre(); };
+  const escala = (w = W, h = H) => cobre(w, h) * z;
   const limitar = () => {
     const [rw, rh] = dims(), sc = escala();
     const hw = W / (2 * sc), hh = H / (2 * sc);
-    cx = Math.min(Math.max(cx, hw), rw - hw); cy = Math.min(Math.max(cy, hh), rh - hh);
+    cx = hw * 2 >= rw ? rw / 2 : Math.min(Math.max(cx, hw), rw - hw);
+    cy = hh * 2 >= rh ? rh / 2 : Math.min(Math.max(cy, hh), rh - hh);
   };
-  const centralizar = () => { const [rw, rh] = dims(); cx = rw / 2; cy = rh / 2; };
+  const centro = () => { const [rw, rh] = dims(); cx = rw / 2; cy = rh / 2; };
   const desenhar = (c, w, h) => {
     const [rw, rh] = dims(), sc = escala(w, h);
     c.save(); c.fillStyle = "#fff"; c.fillRect(0, 0, w, h);
@@ -382,23 +438,71 @@ async function enquadrar(src, titulo = "") {
     c.translate(rw / 2, rh / 2); c.rotate((rot * Math.PI) / 2); c.drawImage(img, -iw / 2, -ih / 2);
     c.restore();
   };
-  const pintar = () => { limitar(); ctx.imageSmoothingQuality = "high"; desenhar(ctx, W, H); };
-  centralizar(); pintar();
+  const syncZoom = () => { zoom.min = zMin().toFixed(3); zoom.max = 4; zoom.value = z; };
+  let raf = 0;
+  const pintar = () => { limitar(); cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { ctx.imageSmoothingQuality = "high"; desenhar(ctx, W, H); }); };
+  // aproxima mantendo parado o ponto que está sob o dedo/mouse
+  const pontoCanvas = (x, y) => { const r = cv.getBoundingClientRect(); return [((x - r.left) / r.width) * W, ((y - r.top) / r.height) * H]; };
+  const zoomEm = (nz, px = W / 2, py = H / 2) => {
+    nz = Math.min(4, Math.max(zMin(), nz));
+    const sc0 = escala(); const ix = cx + (px - W / 2) / sc0, iy = cy + (py - H / 2) / sc0;
+    z = nz; const sc1 = escala(); cx = ix - (px - W / 2) / sc1; cy = iy - (py - H / 2) / sc1;
+    zoom.value = z; pintar();
+  };
+  centro(); syncZoom(); pintar();
 
-  let arr = null;
-  cv.addEventListener("pointerdown", (e) => { arr = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); cv.classList.add("is-drag"); });
-  cv.addEventListener("pointermove", (e) => {
-    if (!arr) return;
-    const k = W / cv.clientWidth, sc = escala();
-    cx -= ((e.clientX - arr.x) * k) / sc; cy -= ((e.clientY - arr.y) * k) / sc;
-    arr = { x: e.clientX, y: e.clientY }; pintar();
+  // gestos: 1 ponteiro arrasta; 2 ponteiros (pinça) dão zoom e movem juntos
+  const pts = new Map();
+  let ultimo = null, pinca = null, ultimoToque = 0;
+  const medir = () => { const [a, b] = [...pts.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  cv.addEventListener("pointerdown", (e) => {
+    cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); cv.classList.add("is-drag");
+    if (pts.size === 2) { pinca = { ...medir(), z0: z }; ultimo = null; }
+    else if (pts.size === 1) {
+      ultimo = { x: e.clientX, y: e.clientY };
+      const agora = Date.now();
+      if (e.pointerType !== "mouse" && agora - ultimoToque < 300) { centro(); pintar(); }
+      ultimoToque = agora;
+    }
   });
-  const soltar = () => { arr = null; cv.classList.remove("is-drag"); };
+  cv.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const k = W / cv.getBoundingClientRect().width;
+    if (pts.size >= 2 && pinca) {
+      const m = medir();
+      const sc = escala();
+      cx -= ((m.x - pinca.x) * k) / sc; cy -= ((m.y - pinca.y) * k) / sc;
+      const [px, py] = pontoCanvas(m.x, m.y);
+      zoomEm(pinca.z0 * (m.d / pinca.d), px, py);
+      pinca.x = m.x; pinca.y = m.y;
+    } else if (ultimo) {
+      const sc = escala();
+      cx -= ((e.clientX - ultimo.x) * k) / sc; cy -= ((e.clientY - ultimo.y) * k) / sc;
+      ultimo = { x: e.clientX, y: e.clientY }; pintar();
+    }
+  });
+  const soltar = (e) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinca = null;
+    if (pts.size === 1) { const [p] = [...pts.values()]; ultimo = { ...p }; } else ultimo = null;
+    if (!pts.size) cv.classList.remove("is-drag");
+  };
   cv.addEventListener("pointerup", soltar); cv.addEventListener("pointercancel", soltar);
-  cv.addEventListener("wheel", (e) => { e.preventDefault(); z = Math.min(4, Math.max(1, z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); zoom.value = z; pintar(); }, { passive: false });
-  zoom.addEventListener("input", () => { z = +zoom.value; pintar(); });
-  dlg.querySelector("[data-rot]").addEventListener("click", () => { rot = (rot + 1) % 4; z = 1; zoom.value = 1; centralizar(); pintar(); });
-  dlg.querySelector("[data-fit]").addEventListener("click", () => { z = 1; zoom.value = 1; centralizar(); pintar(); });
+  cv.addEventListener("dblclick", () => { centro(); pintar(); });
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); const [px, py] = pontoCanvas(e.clientX, e.clientY); zoomEm(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08), px, py); }, { passive: false });
+  cv.addEventListener("keydown", (e) => {
+    const passo = 20 / escala(), mapa = { ArrowLeft: [-passo, 0], ArrowRight: [passo, 0], ArrowUp: [0, -passo], ArrowDown: [0, passo] };
+    if (mapa[e.key]) { e.preventDefault(); cx += mapa[e.key][0]; cy += mapa[e.key][1]; pintar(); }
+    else if (e.key === "+" || e.key === "=") zoomEm(z * 1.1);
+    else if (e.key === "-") zoomEm(z / 1.1);
+  });
+  zoom.addEventListener("input", () => zoomEm(+zoom.value));
+  dlg.querySelectorAll("[data-zstep]").forEach((b) => b.addEventListener("click", () => zoomEm(z * (b.dataset.zstep === "1" ? 1.15 : 1 / 1.15))));
+  dlg.querySelector("[data-fit]").addEventListener("click", () => { z = 1; centro(); syncZoom(); pintar(); });
+  dlg.querySelector("[data-whole]").addEventListener("click", () => { z = zMin(); centro(); syncZoom(); pintar(); });
+  dlg.querySelector("[data-center]").addEventListener("click", () => { centro(); pintar(); });
+  dlg.querySelector("[data-rot]").addEventListener("click", () => { rot = (rot + 1) % 4; z = 1; centro(); syncZoom(); pintar(); });
 
   const gerar = async (w, h, type, q) => {
     const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -406,22 +510,67 @@ async function enquadrar(src, titulo = "") {
     return new Promise((r) => c.toBlob(r, type, q));
   };
   return new Promise((resolve) => {
-    const fim = (v) => { dlg.close(); dlg.remove(); resolve(v); };
+    const fim = (v) => { dlg.close(); dlg.remove(); document.documentElement.classList.remove("crop-aberto"); resolve(v); };
     dlg.addEventListener("cancel", (e) => { e.preventDefault(); fim(null); });
-    dlg.querySelector("[data-cancel]").addEventListener("click", () => fim(null));
+    dlg.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => fim(null)));
     dlg.querySelector("[data-ok]").addEventListener("click", async (e) => {
-      e.currentTarget.disabled = true; e.currentTarget.textContent = "Preparando…";
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Preparando…";
       try {
+        limitar();
         let b960 = await gerar(960, 1200, "image/webp", 0.84), type = "image/webp", ext = "webp";
         if (!b960 || b960.type !== "image/webp") { b960 = await gerar(960, 1200, "image/jpeg", 0.86); type = "image/jpeg"; ext = "jpg"; }
         const b480 = await gerar(480, 600, type, type === "image/webp" ? 0.8 : 0.84);
         fim({ b960, b480, ext, type });
       } catch { aviso("Não foi possível preparar esta foto. Tente outra imagem."); fim(null); }
     });
+    document.documentElement.classList.add("crop-aberto");
     dlg.showModal();
+    cv.focus({ preventScroll: true });
   });
 }
 
+// Arrastar para mudar a ordem: segue o dedo/mouse e troca de lugar ao passar por outra foto
+function arrastarFoto(handle, e) {
+  const fig = handle.closest(".adm__foto"), grid = fig.parentElement, box = fig.closest("[data-fotos]");
+  const figs = () => [...grid.querySelectorAll(".adm__foto")];
+  const inicio = figs().map((f) => +f.dataset.idx);
+  const r0 = fig.getBoundingClientRect(), ox = e.clientX - r0.left, oy = e.clientY - r0.top;
+  const fant = fig.cloneNode(true);
+  fant.classList.add("adm__foto--fantasma");
+  Object.assign(fant.style, { width: r0.width + "px", height: r0.height + "px", transform: `translate(${r0.left}px, ${r0.top}px)` });
+  document.body.appendChild(fant);
+  fig.classList.add("is-lugar");
+  const pid = e.pointerId;
+  let rolar = 0, ultimo = e;
+  const passo = () => {
+    const y = ultimo.clientY, borda = 70;
+    const v = y < borda ? -(borda - y) / 4 : y > innerHeight - borda ? (y - (innerHeight - borda)) / 4 : 0;
+    if (v) { scrollBy(0, v); trocar(ultimo); }
+    rolar = requestAnimationFrame(passo);
+  };
+  const trocar = (ev) => {
+    const alvo = document.elementFromPoint(ev.clientX, ev.clientY)?.closest(".adm__foto");
+    if (!alvo || alvo === fig || alvo.parentElement !== grid) return;
+    const r = alvo.getBoundingClientRect();
+    const depois = ev.clientX > r.left + r.width / 2;
+    if (depois ? alvo.nextElementSibling !== fig : alvo.previousElementSibling !== fig) grid.insertBefore(fig, depois ? alvo.nextSibling : alvo);
+  };
+  const mover = (ev) => { if (ev.pointerId !== pid) return; ultimo = ev; fant.style.transform = `translate(${ev.clientX - ox}px, ${ev.clientY - oy}px) rotate(-2deg) scale(1.04)`; trocar(ev); };
+  const semRolar = (ev) => ev.preventDefault();
+  const fim = (ev) => {
+    if (ev && ev.pointerId !== pid) return;
+    cancelAnimationFrame(rolar);
+    document.removeEventListener("pointermove", mover); document.removeEventListener("pointerup", fim); document.removeEventListener("pointercancel", fim);
+    document.removeEventListener("touchmove", semRolar);
+    fant.remove(); fig.classList.remove("is-lugar");
+    const nova = figs().map((f) => +f.dataset.idx);
+    if (nova.join() !== inicio.join()) acaoFoto(box, "ordem", 0, nova);
+  };
+  // escuta na página toda: ao trocar a foto de lugar o navegador solta o puxador
+  document.addEventListener("pointermove", mover); document.addEventListener("pointerup", fim); document.addEventListener("pointercancel", fim);
+  document.addEventListener("touchmove", semRolar, { passive: false });
+  rolar = requestAnimationFrame(passo);
+}
 
 async function renderClientes() {
   const box = $("[data-conteudo]");
@@ -476,6 +625,7 @@ function erroProduto(msg) {
   if (/bucket not found|precos_fotos|column "?fotos|'fotos' column/i.test(msg)) return "O banco ainda não está pronto para fotos. Rode o arquivo supabase/fotos.sql no SQL Editor do Supabase (uma vez só).";
   if (/mime|file size|payload too large|exceeded/i.test(msg)) return "Arquivo não aceito: a foto precisa ser JPG, PNG ou WebP.";
   if (/column|schema cache/i.test(msg)) return "O banco ainda não tem os campos de detalhes. Rode o arquivo supabase/produtos-detalhes.sql no SQL Editor do Supabase (uma vez só).";
+  if (/precos_etiqueta|etiqueta/i.test(msg) && /column|schema cache|constraint/i.test(msg)) return /constraint/i.test(msg) ? "Etiqueta inválida: use até 24 letras." : "O banco ainda não tem a etiqueta. Rode o arquivo supabase/etiqueta.sql no SQL Editor do Supabase (uma vez só).";
   if (/precos_nome_tam/.test(msg)) return "O nome precisa ter de 2 a 80 caracteres.";
   if (/precos_descricao_tam/.test(msg)) return "A descrição pode ter no máximo 700 caracteres.";
   if (/precos_personalizavel_tam/.test(msg)) return "O texto de personalização pode ter no máximo 120 caracteres.";
@@ -488,11 +638,30 @@ function erroProduto(msg) {
 
 // contador de caracteres da descrição
 app.addEventListener("input", (e) => {
+  const etq = e.target.closest("[data-etq]");
+  if (etq) {
+    if (e.target.name === "etqlivre") etq.querySelector("[name=etqcor][value=livre]").checked = true;
+    previaEtiqueta(etq);
+  }
   const t = e.target.closest("textarea[name=descricao]");
   if (t) t.closest("label").querySelector("[data-count]").textContent = `${t.value.length}/700`;
 });
 
+app.addEventListener("pointerdown", (e) => {
+  const h = e.target.closest("[data-drag]");
+  if (h && e.button === 0) { e.preventDefault(); arrastarFoto(h, e); }
+});
+app.addEventListener("keydown", (e) => {
+  const h = e.target.closest("[data-drag]");
+  if (!h || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+  e.preventDefault();
+  const i = +h.dataset.i, n = h.closest(".adm__fotos").querySelectorAll(".adm__foto").length;
+  const esq = e.key === "ArrowLeft" || e.key === "ArrowUp";
+  if ((esq && i > 0) || (!esq && i < n - 1)) acaoFoto(h.closest("[data-fotos]"), esq ? "esq" : "dir", i);
+});
 app.addEventListener("change", (e) => {
+  const etq = e.target.closest("[data-etq]");
+  if (etq) previaEtiqueta(etq);
   const inp = e.target.closest("[data-fa-add]");
   if (inp) { const box = inp.closest("[data-fotos]"); acaoFoto(box, "add", 0, inp.files); inp.value = ""; }
 });
@@ -503,9 +672,9 @@ app.addEventListener("click", async (e) => {
   if (fa) { const box = fa.closest("[data-fotos]"); fa.disabled = true; await acaoFoto(box, fa.dataset.fa, +fa.dataset.i || 0); fa.disabled = false; return; }
   const rest = e.target.closest("[data-restaurar]");
   if (rest) {
-    if (!confirm("Voltar nome, descrição, categorias, selos, personalização e ordem para os dados originais do arquivo? Os preços não mudam.")) return;
+    if (!confirm("Voltar nome, descrição, categorias, selos, personalização, ordem e etiqueta para os dados originais do arquivo? Os preços e as fotos não mudam.")) return;
     try {
-      ok(await sb.from("precos").update({ nome: null, descricao: null, categorias: null, selos: null, personalizavel: null, ordem: null }).eq("produto_id", rest.dataset.restaurar));
+      ok(await sb.from("precos").update({ nome: null, descricao: null, categorias: null, selos: null, personalizavel: null, ordem: null, ...([...ajustes.values()].some((x) => "etiqueta" in x) ? { etiqueta: null } : {}) }).eq("produto_id", rest.dataset.restaurar));
       abertos.add(rest.dataset.restaurar);
       aviso("Detalhes restaurados.");
       renderPrecos();

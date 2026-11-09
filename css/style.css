@@ -1794,3 +1794,8 @@ label { font-size: .8rem; font-weight: 500; }
 .catbar__arrow--prev .ico { transform: scaleX(-1); }
 .catbar__arrow--next { right: 0; }
 @media (max-width: 599px) { .catbar__arrow { width: 30px; height: 30px; } .catbar__wrap::before, .catbar__wrap::after { width: 48px; } }
+
+/* Etiqueta personalizada do painel (selo no canto empilhado com o selo de oferta/novidade) */
+.card__tags { position: absolute; z-index: 3; top: .6rem; left: .6rem; display: grid; justify-items: start; gap: .3rem; pointer-events: none; }
+.card__tags .card__tag { position: static; }
+.card__tag--etq { text-transform: uppercase; letter-spacing: .06em; font-size: .64rem; }
