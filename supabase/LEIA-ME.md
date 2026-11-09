@@ -141,6 +141,14 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   Antes de usar pela primeira vez, rode **uma vez** o arquivo
   `supabase/produtos-detalhes.sql` no SQL Editor (New query → colar → Run).
 
+- **Variações** (no mesmo cartão): até 4 características por produto
+  (ex.: Tamanho, Cor, Acabamento), cada uma com suas opções. Na 1ª você pode
+  marcar **Cada opção tem o seu próprio preço** (ex.: 4 cm R$ 20, 7 cm R$ 30);
+  nas outras, cada opção pode somar um valor (ex.: Dourado + R$ 5). Dá para
+  renomear, mudar a ordem (↑ ↓), adicionar e remover opções e características.
+  **Voltar às variações do arquivo** desfaz. Antes de usar pela primeira vez,
+  rode **uma vez** `supabase/variacoes.sql` no SQL Editor.
+
 - **Etiqueta no card** (em Editar detalhes): um texto curto (até 24 letras,
   ex.: LANÇAMENTO) com cor à escolha, como **faixa na foto** (igual à da Black
   Marshê, que ela substitui naquele produto) ou **selo no canto**. Tem prévia.

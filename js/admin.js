@@ -114,6 +114,7 @@ const corTexto = (hex) => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g
 const SELOS = ["Novo", "Mais pedido"];
 const abertos = new Set();
 const abertosFotos = new Set();
+const abertosVar = new Set();
 let ajustes = new Map();
 // valores atuais = banco (se editado) ou produtos.json
 function atual(p, l) {
@@ -144,14 +145,16 @@ async function renderPrecos() {
     queueMicrotask(() => document.querySelectorAll("[data-etq]").forEach(previaEtiqueta));
     const q = buscaProd.toLowerCase();
     const lista = catalogo.filter((p) => { const d = atual(p, porId.get(p.id)); return !q || (p.nome + " " + d.nome + " " + d.categorias.join(" ")).toLowerCase().includes(q); });
-    box.innerHTML = `<details class="adm__hint"><summary>Como funciona esta aba</summary><p>Altere e clique em <strong>Salvar</strong>: a loja atualiza na hora. Deixe <strong>Sob consulta</strong> marcado para mostrar “Pedir orçamento” em vez do preço. <strong>Preço antigo</strong> maior que o preço vira oferta (riscado, com % de desconto e no filtro Black Marshê). Em <strong>Editar detalhes do produto</strong> você muda nome, descrição, categorias, selos, personalização e a ordem na vitrine.</p></details>
+    box.innerHTML = `<details class="adm__hint"><summary>Como funciona esta aba</summary><p>Altere e clique em <strong>Salvar</strong>: a loja atualiza na hora. Deixe <strong>Sob consulta</strong> marcado para mostrar “Pedir orçamento” em vez do preço. <strong>Preço antigo</strong> maior que o preço vira oferta (riscado, com % de desconto e no filtro Black Marshê). Em <strong>Editar detalhes do produto</strong> você muda nome, descrição, categorias, selos, etiqueta, personalização e a ordem na vitrine. Em <strong>Variações</strong> você cria e edita características (tamanho, cor, acabamento...) com as opções e os preços de cada uma.</p></details>
       <form class="adm__search" data-busca-prod><input type="search" name="q" placeholder="Buscar produto" value="${esc(buscaProd)}"><button class="btn btn--primary" type="submit">Buscar</button></form>
+      <datalist id="adm-sugestoes-var">${SUGESTOES_VAR.map((x) => `<option value="${x}">`).join("")}</datalist>
       <div class="adm__list">${lista.map((p) => {
         const l = porId.get(p.id);
         const sob = l ? l.sob_consulta : !!p.sobConsulta;
         const preco = l?.preco ?? p.preco ?? null;
         const de = l ? l.preco_de : p.precoDe ?? null;
-        const ops = p.variacoes?.opcoes || [];
+        const gAtuais = gruposAtuais(p, l);
+        const porOpcao = gAtuais[0]?.precoPorOpcao;
         const foto = fotosDe(p, l)[0] ? miniatura(fotosDe(p, l)[0]) : "";
         const d = atual(p, l);
         const editado = l && CAMPOS.some((c) => l[c] != null);
@@ -160,8 +163,8 @@ async function renderPrecos() {
             <div><strong>${esc(d.nome)}</strong><small>${esc(d.categorias.join(" · "))}${l ? ` · alterado em ${dataHora(l.atualizado_em)}` : " · dados do arquivo"}${editado ? " · detalhes editados" : ""}</small></div></div>
           <div class="adm__prod-fields">
             <label class="adm__chk"><input type="checkbox" name="sob" ${sob ? "checked" : ""}> Sob consulta</label>
-            ${ops.length ? ops.map((o) => `<label>${esc(p.variacoes.nome || "Opção")}: ${esc(o.nome)}<span class="adm__money">R$ <input name="op" data-op="${esc(o.nome)}" inputmode="decimal" value="${reais(l?.opcoes?.[o.nome] ?? o.preco)}"></span></label>`).join("")
-              : `<label>Preço<span class="adm__money">R$ <input name="preco" inputmode="decimal" value="${reais(preco)}"></span></label>`}
+            <label class="adm__base">Preço<span class="adm__money">R$ <input name="preco" inputmode="decimal" value="${reais(porOpcao ? (l?.preco ?? p.preco ?? null) : preco)}"></span></label>
+            <button type="button" class="adm__varsum" data-abrir-var>Preço por ${esc(gAtuais[0]?.nome || "opção")}<small>${esc(porOpcao ? gAtuais[0].opcoes.filter((o) => o.valor != null).map((o) => `${o.nome} ${brl(o.valor)}`).join(" · ") : "")}</small></button>
             <label>Preço antigo (oferta)<span class="adm__money">R$ <input name="de" inputmode="decimal" placeholder="sem oferta" value="${reais(de)}"></span></label>
             <label class="adm__chk"><input type="checkbox" name="oculto" ${l?.oculto ? "checked" : ""}> Esconder da loja</label>
             <button class="btn btn--primary" type="submit">Salvar</button>
@@ -201,6 +204,7 @@ async function renderPrecos() {
               </div>
             </div>
           </details>
+          ${variacoesHtml(p, l)}
           <p class="adm__msg"></p>
           ${fotosHtml(p, l)}
         </form>`;
@@ -228,15 +232,11 @@ function previaEtiqueta(box) {
 async function salvarPreco(f) {
   const p = catalogo.find((x) => x.id === f.dataset.preco);
   const sob = f.sob.checked;
-  const ops = [...f.querySelectorAll("[data-op]")];
-  let preco = null, opcoes = null;
-  if (ops.length) {
-    opcoes = {};
-    for (const i of ops) { const v = numero(i.value); if (v != null) { if (!(v >= 0)) throw new Error("Valor inválido em " + i.dataset.op); opcoes[i.dataset.op] = v; } }
-    const vals = Object.values(opcoes);
-    preco = vals.length ? Math.min(...vals) : null;
-    if (!sob && vals.length < ops.length) throw new Error("Preencha o preço de todas as opções (ou marque Sob consulta).");
-  } else {
+  const vars = montarVariacoes(f, sob);
+  let preco = null;
+  const opcoes = null;   // preços por opção agora ficam em "variacoes"
+  if (vars?.precoPorOpcao) preco = vars.menorPreco;
+  else {
     preco = numero(f.preco.value);
     if (preco != null && !(preco >= 0)) throw new Error("Preço inválido.");
   }
@@ -266,12 +266,143 @@ async function salvarPreco(f) {
     ordem,
     etiqueta: lerEtiqueta(f)
   };
+  // variações: null = segue o produtos.json (só grava se mudou)
+  const doArquivo = JSON.stringify(gruposDoArquivo(p, null).map((g, gi) => ({ nome: g.nome, ...(gi === 0 ? { precoPorOpcao: !!g.precoPorOpcao } : {}), opcoes: g.opcoes.map((o) => (g.precoPorOpcao ? { nome: o.nome, ...(o.valor != null ? { preco: o.valor } : {}) } : { nome: o.nome })) })));
+  const variacoes = vars && JSON.stringify(vars.json) !== doArquivo ? vars.json : null;
+  const bancoTemVariacoes = [...ajustes.values()].some((x) => "variacoes" in x);
+  if (variacoes == null && !bancoTemVariacoes) { /* banco ainda sem a coluna: não manda o campo */ } else det.variacoes = variacoes;
   // Se o banco ainda não tem as colunas novas, salvar só o preço continua funcionando
   if (det.etiqueta == null && ![...ajustes.values()].some((x) => "etiqueta" in x)) delete det.etiqueta;   // banco ainda sem a coluna
   const bancoTemDetalhes = [...ajustes.values()].some((l) => "nome" in l);
   const mudouDetalhe = Object.values(det).some((v) => v != null);
   ok(await sb.from("precos").upsert({ produto_id: p.id, preco, preco_de: de, sob_consulta: sob, opcoes, oculto: f.oculto.checked, ...(bancoTemDetalhes || mudouDetalhe ? det : {}) }));
   return nome;
+}
+
+/* ---------- Variações: características (Tamanho, Cor...) com opções ---------- */
+const MAX_GRUPOS = 4, MAX_OPCOES = 20;
+const SUGESTOES_VAR = ["Tamanho", "Cor", "Acabamento", "Modelo", "Material", "Formato", "Estilo", "Quantidade"];
+// variações do produtos.json, com os preços já alterados no painel antigo (coluna "opcoes")
+function gruposDoArquivo(p, l) {
+  const v = p.variacoes;
+  if (!v?.opcoes?.length) return [];
+  return [{ nome: v.nome || "Opção", precoPorOpcao: v.opcoes.some((o) => o.preco != null), opcoes: v.opcoes.map((o) => ({ nome: o.nome, valor: l?.opcoes?.[o.nome] ?? o.preco ?? null })) }];
+}
+// variações atuais (painel ou arquivo), no formato do editor: { nome, precoPorOpcao, opcoes: [{ nome, valor }] }
+function gruposAtuais(p, l) {
+  if (!Array.isArray(l?.variacoes)) return gruposDoArquivo(p, l);
+  return l.variacoes.map((g, i) => {
+    const porPreco = i === 0 && g.precoPorOpcao !== false && (g.opcoes || []).some((o) => o.preco != null);
+    return { nome: g.nome || "", precoPorOpcao: porPreco, opcoes: (g.opcoes || []).map((o) => ({ nome: o.nome || "", valor: porPreco ? o.preco ?? null : o.extra ?? null })) };
+  });
+}
+function opcaoHtml(gi, porPreco, o = { nome: "", valor: null }) {
+  return `<div class="adm__vop" data-vo>
+    <input data-vo-nome maxlength="40" placeholder="${gi === 0 ? "Ex.: 4 cm" : "Ex.: Azul"}" value="${esc(o.nome)}" aria-label="Nome da opção">
+    <span class="adm__money adm__vop-valor">${porPreco ? "R$" : "+ R$"} <input data-vo-valor inputmode="decimal" placeholder="${porPreco ? "preço" : "0"}" value="${reais(o.valor)}" aria-label="${porPreco ? "Preço desta opção" : "Acréscimo desta opção"}"></span>
+    <span class="adm__vop-acts">
+      <button type="button" data-va="up" aria-label="Subir opção" title="Subir">&uarr;</button>
+      <button type="button" data-va="down" aria-label="Descer opção" title="Descer">&darr;</button>
+      <button type="button" data-va="del-op" aria-label="Remover opção" title="Remover">&times;</button>
+    </span>
+  </div>`;
+}
+function gruposHtml(grupos) {
+  return `${grupos.length ? "" : `<p class="adm__vvazio">Este produto não tem variações. O cliente compra direto, sem escolher opções.</p>`}
+    ${grupos.map((g, gi) => {
+      const porPreco = gi === 0 && g.precoPorOpcao;
+      return `<div class="adm__vgrupo${porPreco ? " is-preco" : ""}" data-vg>
+        <div class="adm__vg-head">
+          <span class="adm__vg-n">${gi + 1}</span>
+          <input class="adm__vg-nome" data-vg-nome maxlength="30" list="adm-sugestoes-var" placeholder="Característica (ex.: Tamanho, Cor)" value="${esc(g.nome)}" aria-label="Nome da característica">
+          <button type="button" class="adm__vg-del" data-va="del-grupo" aria-label="Remover a característica ${esc(g.nome || gi + 1)}" title="Remover característica">&times;</button>
+        </div>
+        ${gi === 0
+          ? `<label class="adm__vg-modo"><input type="checkbox" data-vg-preco ${porPreco ? "checked" : ""}><span>Cada opção tem o seu próprio preço</span></label>`
+          : `<p class="adm__vg-info">Valor opcional: soma ao preço quando o cliente escolhe a opção (deixe vazio se não muda o preço).</p>`}
+        <div class="adm__vops">${g.opcoes.map((o) => opcaoHtml(gi, porPreco, o)).join("")}</div>
+        ${g.opcoes.length < MAX_OPCOES ? `<button type="button" class="adm__vadd" data-va="add-op">+ Adicionar opção</button>` : ""}
+      </div>`;
+    }).join("")}
+    ${grupos.length < MAX_GRUPOS ? `<button type="button" class="btn btn--ghost adm__vadd-grupo" data-va="add-grupo">+ Adicionar característica</button>` : ""}`;
+}
+function variacoesHtml(p, l) {
+  const grupos = gruposAtuais(p, l);
+  const resumo = grupos.length ? grupos.map((g) => `${g.nome} (${g.opcoes.length})`).join(" · ") : "sem variações";
+  return `<details class="adm__more adm__varbox" data-var${abertosVar.has(p.id) ? " open" : ""}>
+    <summary>Variações <small>${esc(resumo)} · tamanho, cor, acabamento...</small></summary>
+    <div class="adm__vlista" data-var-lista>${gruposHtml(grupos)}</div>
+    <div class="adm__det-foot">
+      <button class="btn btn--primary" type="submit">Salvar variações</button>
+      ${Array.isArray(l?.variacoes) && p.variacoes?.opcoes?.length ? `<button class="link-btn" type="button" data-var-reset="${esc(p.id)}">Voltar às variações do arquivo</button>` : ""}
+    </div>
+  </details>`;
+}
+// lê o editor (como está na tela) → { nome, precoPorOpcao, opcoes: [{ nome, valor }] }
+function lerGrupos(box) {
+  return [...box.querySelectorAll("[data-vg]")].map((g, gi) => ({
+    nome: g.querySelector("[data-vg-nome]").value,
+    precoPorOpcao: gi === 0 && !!g.querySelector("[data-vg-preco]")?.checked,
+    opcoes: [...g.querySelectorAll("[data-vo]")].map((o) => ({ nome: o.querySelector("[data-vo-nome]").value, valor: numero(o.querySelector("[data-vo-valor]").value) }))
+  }));
+}
+function acaoVariacao(btn) {
+  const box = btn.closest("[data-var-lista]");
+  const grupos = lerGrupos(box);
+  const gEl = btn.closest("[data-vg]"), oEl = btn.closest("[data-vo]");
+  const gi = gEl ? [...box.querySelectorAll("[data-vg]")].indexOf(gEl) : -1;
+  const oi = oEl ? [...gEl.querySelectorAll("[data-vo]")].indexOf(oEl) : -1;
+  const a = btn.dataset.va;
+  let foco = null;
+  if (a === "add-grupo") { grupos.push({ nome: "", precoPorOpcao: grupos.length === 0, opcoes: [{ nome: "", valor: null }, { nome: "", valor: null }] }); foco = [grupos.length - 1, "nome"]; }
+  else if (a === "del-grupo") {
+    if (grupos[gi].opcoes.some((o) => o.nome.trim()) && !confirm(`Remover a característica "${grupos[gi].nome || gi + 1}" e as opções dela?`)) return;
+    grupos.splice(gi, 1);
+    if (grupos[0]) grupos[0].precoPorOpcao = grupos[0].precoPorOpcao || false;
+  }
+  else if (a === "add-op") { grupos[gi].opcoes.push({ nome: "", valor: null }); foco = [gi, grupos[gi].opcoes.length - 1]; }
+  else if (a === "del-op") { grupos[gi].opcoes.splice(oi, 1); if (!grupos[gi].opcoes.length) grupos.splice(gi, 1); }
+  else if (a === "up" && oi > 0) { const o = grupos[gi].opcoes; [o[oi - 1], o[oi]] = [o[oi], o[oi - 1]]; foco = [gi, oi - 1]; }
+  else if (a === "down" && oi < grupos[gi].opcoes.length - 1) { const o = grupos[gi].opcoes; [o[oi + 1], o[oi]] = [o[oi], o[oi + 1]]; foco = [gi, oi + 1]; }
+  else return;
+  box.innerHTML = gruposHtml(grupos);
+  if (foco) {
+    const g = box.querySelectorAll("[data-vg]")[foco[0]];
+    (foco[1] === "nome" ? g?.querySelector("[data-vg-nome]") : g?.querySelectorAll("[data-vo-nome]")[foco[1]])?.focus();
+  }
+}
+// valida e monta o JSON gravado no banco; devolve também o preço "a partir de"
+function montarVariacoes(f, sob) {
+  const box = f.querySelector("[data-var-lista]");
+  if (!box) return null;
+  const grupos = lerGrupos(box)
+    .map((g) => ({ ...g, nome: g.nome.trim().replace(/\s+/g, " "), opcoes: g.opcoes.map((o) => ({ ...o, nome: o.nome.trim().replace(/\s+/g, " ") })).filter((o) => o.nome || o.valor != null) }))
+    .filter((g) => g.nome || g.opcoes.length);
+  const nomesG = new Set();
+  grupos.forEach((g, gi) => {
+    if (!g.nome) throw new Error(`Dê um nome para a característica ${gi + 1} (ex.: Tamanho, Cor).`);
+    if (/[<>]/.test(g.nome)) throw new Error("Não use < ou > nos nomes.");
+    if (nomesG.has(g.nome.toLowerCase())) throw new Error(`A característica "${g.nome}" aparece duas vezes.`);
+    nomesG.add(g.nome.toLowerCase());
+    if (!g.opcoes.length) throw new Error(`Adicione pelo menos uma opção em "${g.nome}".`);
+    const nomesO = new Set();
+    g.opcoes.forEach((o) => {
+      if (!o.nome) throw new Error(`Há uma opção sem nome em "${g.nome}".`);
+      if (/[<>]/.test(o.nome) || o.nome.includes(" · ")) throw new Error(`Nome de opção inválido em "${g.nome}": evite < > e " · ".`);
+      if (nomesO.has(o.nome.toLowerCase())) throw new Error(`A opção "${o.nome}" aparece duas vezes em "${g.nome}".`);
+      nomesO.add(o.nome.toLowerCase());
+      if (o.valor != null && !(o.valor >= 0)) throw new Error(`Valor inválido em "${o.nome}".`);
+    });
+    if (gi === 0 && g.precoPorOpcao && !sob && g.opcoes.some((o) => !(o.valor > 0))) throw new Error(`Preencha o preço de cada opção de "${g.nome}" (ou marque Sob consulta).`);
+  });
+  const json = grupos.map((g, gi) => ({
+    nome: g.nome,
+    ...(gi === 0 ? { precoPorOpcao: !!g.precoPorOpcao } : {}),
+    opcoes: g.opcoes.map((o) => (gi === 0 && g.precoPorOpcao ? { nome: o.nome, ...(o.valor != null ? { preco: o.valor } : {}) } : { nome: o.nome, ...(o.valor > 0 ? { extra: o.valor } : {}) }))
+  }));
+  const g0 = grupos[0];
+  const precoOpcoes = g0?.precoPorOpcao ? g0.opcoes.map((o) => o.valor).filter((v) => v > 0) : [];
+  return { json, precoPorOpcao: !!g0?.precoPorOpcao, menorPreco: precoOpcoes.length ? Math.min(...precoOpcoes) : null };
 }
 
 /* ---------- Fotos dos produtos: adicionar, remover, ordenar e enquadrar ---------- */
@@ -598,7 +729,7 @@ app.addEventListener("submit", async (e) => {
   const btn = f.querySelector("[type=submit]");
   if (btn) btn.disabled = true;
   try {
-    if (f.matches("[data-preco]")) { if (f.querySelector("details[open]")) abertos.add(f.dataset.preco); const nome = await salvarPreco(f); aviso(`“${nome}” salvo. Já está no site.`); f.querySelector(".adm__msg").textContent = ""; renderPrecos(); return; }
+    if (f.matches("[data-preco]")) { if (f.querySelector("details.adm__more:not(.adm__varbox):not(.adm__fotobox)[open]")) abertos.add(f.dataset.preco); if (f.querySelector(".adm__varbox[open]")) abertosVar.add(f.dataset.preco); const nome = await salvarPreco(f); aviso(`“${nome}” salvo. Já está no site.`); f.querySelector(".adm__msg").textContent = ""; renderPrecos(); return; }
     if (f.matches("[data-busca-prod]")) { buscaProd = f.q.value.trim(); renderPrecos(); return; }
     if (f.matches("[data-login-senha]")) { email = f.email.value.trim().toLowerCase(); ok(await sb.auth.signInWithPassword({ email, password: f.senha.value })); history.replaceState(null, "", location.pathname); await iniciar(); }
     else if (f.matches("[data-login-email]")) { email = f.email.value.trim().toLowerCase(); ok(await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } })); telaLogin("codigo"); }
@@ -624,6 +755,7 @@ app.addEventListener("submit", async (e) => {
 function erroProduto(msg) {
   if (/bucket not found|precos_fotos|column "?fotos|'fotos' column/i.test(msg)) return "O banco ainda não está pronto para fotos. Rode o arquivo supabase/fotos.sql no SQL Editor do Supabase (uma vez só).";
   if (/mime|file size|payload too large|exceeded/i.test(msg)) return "Arquivo não aceito: a foto precisa ser JPG, PNG ou WebP.";
+  if (/variacoes/i.test(msg)) return /constraint/i.test(msg) ? "Variações inválidas: no máximo 4 características, sem < ou >." : "O banco ainda não tem as variações. Rode o arquivo supabase/variacoes.sql no SQL Editor do Supabase (uma vez só).";
   if (/column|schema cache/i.test(msg)) return "O banco ainda não tem os campos de detalhes. Rode o arquivo supabase/produtos-detalhes.sql no SQL Editor do Supabase (uma vez só).";
   if (/precos_etiqueta|etiqueta/i.test(msg) && /column|schema cache|constraint/i.test(msg)) return /constraint/i.test(msg) ? "Etiqueta inválida: use até 24 letras." : "O banco ainda não tem a etiqueta. Rode o arquivo supabase/etiqueta.sql no SQL Editor do Supabase (uma vez só).";
   if (/precos_nome_tam/.test(msg)) return "O nome precisa ter de 2 a 80 caracteres.";
@@ -660,6 +792,8 @@ app.addEventListener("keydown", (e) => {
   if ((esq && i > 0) || (!esq && i < n - 1)) acaoFoto(h.closest("[data-fotos]"), esq ? "esq" : "dir", i);
 });
 app.addEventListener("change", (e) => {
+  const vp = e.target.closest("[data-vg-preco]");
+  if (vp) { const box = vp.closest("[data-var-lista]"); box.innerHTML = gruposHtml(lerGrupos(box)); box.querySelector("[data-vg-preco]")?.focus(); }
   const etq = e.target.closest("[data-etq]");
   if (etq) previaEtiqueta(etq);
   const inp = e.target.closest("[data-fa-add]");
@@ -668,6 +802,16 @@ app.addEventListener("change", (e) => {
 
 app.addEventListener("click", async (e) => {
   if (e.target.closest("[data-login-link]")) return telaLogin("link");
+  const va = e.target.closest("[data-va]");
+  if (va) { acaoVariacao(va); return; }
+  if (e.target.closest("[data-abrir-var]")) { const d = e.target.closest("form").querySelector(".adm__varbox"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const vr = e.target.closest("[data-var-reset]");
+  if (vr) {
+    if (!confirm("Voltar às variações originais do arquivo? As que você criou ou mudou aqui saem do produto.")) return;
+    try { ok(await sb.from("precos").update({ variacoes: null }).eq("produto_id", vr.dataset.varReset)); abertosVar.add(vr.dataset.varReset); aviso("Variações do arquivo de volta."); renderPrecos(); }
+    catch (err) { aviso(erroProduto(err.message)); }
+    return;
+  }
   const fa = e.target.closest("[data-fa]");
   if (fa) { const box = fa.closest("[data-fotos]"); fa.disabled = true; await acaoFoto(box, fa.dataset.fa, +fa.dataset.i || 0); fa.disabled = false; return; }
   const rest = e.target.closest("[data-restaurar]");

@@ -481,3 +481,15 @@ alter table public.precos add constraint precos_etiqueta_valida check (
     and coalesce(etiqueta->>'estilo', '') in ('faixa', 'selo')
   )
 );
+
+-- ---------- Variações dos produtos (mesmo conteúdo de variacoes.sql) ----------
+alter table public.precos add column if not exists variacoes jsonb;
+alter table public.precos drop constraint if exists precos_variacoes_validas;
+alter table public.precos add constraint precos_variacoes_validas check (
+  variacoes is null or (
+    jsonb_typeof(variacoes) = 'array'
+    and jsonb_array_length(variacoes) <= 4
+    and octet_length(variacoes::text) <= 8000
+    and variacoes::text !~ '[<>]'
+  )
+);

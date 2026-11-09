@@ -328,3 +328,44 @@ html.crop-aberto { overflow: hidden; }
 .adm__prod-fields > .adm__chk:has(input:focus-visible) { outline: 3px solid rgba(251,68,5,.35); outline-offset: 2px; }
 .adm__newcat { white-space: nowrap; }
 @media (max-width: 599px) { .adm__prod-fields > .adm__chk { justify-content: flex-start; padding: 0 .7rem; } .adm__prod-fields > .adm__chk::after { left: calc(.7rem + 2px); } }
+
+/* Variações (características e opções) */
+.adm__varsum { display: none; grid-column: span 2; text-align: left; align-self: stretch; min-height: 44px; padding: .5rem .8rem; border: 1px dashed #D6D3D1; border-radius: 10px; background: #FAFAF9; font: inherit; font-size: .78rem; font-weight: 600; color: var(--tinta); cursor: pointer; }
+.adm__varsum small { display: block; margin-top: .15rem; font-weight: 400; color: var(--tinta-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm__varsum::after { content: " · editar"; color: var(--laranja-escuro); }
+.adm__prod:has([data-vg-preco]:checked) .adm__base { display: none; }
+.adm__prod:has([data-vg-preco]:checked) .adm__varsum { display: block; }
+.adm__vlista { display: grid; gap: .8rem; margin: .3rem 0 1rem; }
+.adm__vvazio { margin: 0; padding: .8rem 1rem; border-radius: 12px; background: #FAFAF9; font-size: .82rem; color: var(--tinta-suave); }
+.adm__vgrupo { display: grid; gap: .6rem; padding: .8rem; border: 1px solid #EAE7E4; border-radius: 14px; background: #FCFCFB; }
+.adm__vg-head { display: flex; align-items: center; gap: .5rem; }
+.adm__vg-n { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--laranja-escuro); color: #fff; font-size: .75rem; font-weight: 700; }
+.adm__vg-nome { flex: 1; min-width: 0; min-height: 42px; padding: .45rem .75rem; border: 1px solid var(--linha); border-radius: 10px; background: #fff; font: inherit; font-size: .95rem; font-weight: 600; }
+.adm__vg-del { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: #B42318; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.adm__vg-del:hover { background: #FDECEA; }
+.adm__vg-modo { display: inline-flex; align-items: center; gap: .5rem; font-size: .8rem; font-weight: 600; color: var(--tinta); cursor: pointer; }
+.adm__vg-modo input { width: 18px; height: 18px; accent-color: var(--laranja-escuro); }
+.adm__vg-info { margin: 0; font-size: .74rem; color: var(--tinta-suave); line-height: 1.45; }
+.adm__vops { display: grid; gap: .45rem; }
+.adm__vop { display: grid; grid-template-columns: minmax(0, 1fr) 8.5rem auto; align-items: center; gap: .45rem; }
+.adm__vop > input { min-width: 0; min-height: 42px; padding: .45rem .7rem; border: 1px solid var(--linha); border-radius: 10px; background: #fff; font: inherit; font-size: .95rem; }
+.adm__vop > input:focus, .adm__vg-nome:focus { outline: none; border-color: var(--laranja); box-shadow: 0 0 0 3px rgba(251, 68, 5, .15); }
+.adm__vop-valor { min-height: 42px; }
+.adm__vop-valor input { font-size: .95rem; }
+.adm__vop-acts { display: inline-flex; }
+.adm__vop-acts button { width: 30px; height: 36px; border: 0; background: none; color: var(--tinta-suave); font-size: 1rem; cursor: pointer; border-radius: 8px; }
+.adm__vop-acts button:hover { background: #F1EFEE; color: var(--tinta); }
+.adm__vop-acts [data-va="del-op"] { color: #B42318; font-size: 1.2rem; }
+.adm__vop:first-child [data-va="up"], .adm__vop:last-child [data-va="down"] { visibility: hidden; }
+.adm__vadd { justify-self: start; border: 0; background: none; padding: .3rem 0; color: var(--laranja-escuro); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
+.adm__vadd-grupo { justify-self: start; min-height: 42px; font-size: .82rem; }
+.adm__varbox .adm__det-foot { margin-top: .2rem; }
+@media (max-width: 599px) {
+  .adm__varsum { grid-column: 1 / -1; }
+  .adm__vop { grid-template-columns: minmax(0, 1fr) 7.2rem; }
+  .adm__vop-acts { grid-column: 1 / -1; justify-content: flex-end; margin-top: -.35rem; }
+  .adm__vop { padding-bottom: .1rem; border-bottom: 1px dashed #EAE7E4; }
+  .adm__vop:last-child { border-bottom: 0; }
+}
+.adm__vop-valor { white-space: nowrap; gap: .2rem; }
+@media (max-width: 599px) { .adm__vop { grid-template-columns: minmax(0, 1fr) 8.2rem; } }

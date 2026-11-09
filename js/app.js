@@ -54,9 +54,50 @@
   const placeholder = (label = "Foto em breve") => `<div class="ph" aria-hidden="true"><span class="ph__tag">${esc(label)}</span></div>`;
 
   /* ---------- Preços ---------- */
-  const opts = (p) => p.variacoes?.opcoes || [];
-  const minPrice = (p) => (opts(p).length ? Math.min(...opts(p).map((o) => o.preco ?? p.preco)) : p.preco);
-  const hasRange = (p) => opts(p).length && new Set(opts(p).map((o) => o.preco ?? p.preco)).size > 1;
+  // Variações: p.grupos = [{ nome: "Tamanho", porPreco: true, opcoes: [{ nome, preco }] }, { nome: "Cor", opcoes: [{ nome, extra }] }]
+  const SEP = " · ";
+  const grupos = (p) => p.grupos || [];
+  const opts = (p) => (grupos(p)[0]?.porPreco ? grupos(p)[0].opcoes : []);
+  const extras = (p) => grupos(p).filter((g) => !g.porPreco);
+  const minExtra = (g) => Math.min(...g.opcoes.map((o) => o.extra || 0));
+  const minPrice = (p) => (opts(p).length ? Math.min(...opts(p).map((o) => o.preco ?? p.preco)) : p.preco) + extras(p).reduce((t, g) => t + minExtra(g), 0);
+  const hasRange = (p) => (opts(p).length > 0 && new Set(opts(p).map((o) => o.preco ?? p.preco)).size > 1) || extras(p).some((g) => new Set(g.opcoes.map((o) => o.extra || 0)).size > 1);
+  // nomes escolhidos (um por característica) → texto salvo no carrinho, e de volta
+  const varTexto = (nomes) => nomes.filter(Boolean).join(SEP);
+  const varNomes = (p, v) => {
+    const gs = grupos(p);
+    if (!gs.length) return [];
+    const partes = String(v || "").split(SEP);
+    return partes.length === gs.length && gs.every((g, i) => g.opcoes.some((o) => o.nome === partes[i])) ? partes : null;
+  };
+  const varPadrao = (p) => varTexto(grupos(p).map((g) => g.opcoes[0]?.nome));
+  const precoEscolha = (p, nomes) => {
+    const gs = grupos(p);
+    let v = p.preco;
+    gs.forEach((g, i) => {
+      const o = g.opcoes.find((x) => x.nome === nomes?.[i]);
+      if (g.porPreco) v = o ? o.preco ?? p.preco : Math.min(...g.opcoes.map((x) => x.preco ?? p.preco));
+      else v += o ? o.extra || 0 : minExtra(g);
+    });
+    return v;
+  };
+  // produtos.json: { variacoes: { nome, opcoes: [{ nome, preco }] } } → grupos
+  const gruposDoArquivo = (v) => (v?.opcoes?.length ? [{ nome: v.nome || "Opção", porPreco: v.opcoes.some((o) => o.preco != null), opcoes: v.opcoes.map((o) => ({ nome: String(o.nome), ...(o.preco != null ? { preco: +o.preco } : {}) })) }] : []);
+  // painel: lista de características (validada aqui também)
+  const gruposDoPainel = (lista) => lista
+    .filter((g) => g && typeof g.nome === "string" && g.nome.trim() && Array.isArray(g.opcoes) && g.opcoes.length)
+    .slice(0, 4)
+    .map((g, i) => {
+      // só a 1ª característica pode ter preço por opção; as outras (ou a 1ª sem preço próprio) somam um acréscimo
+      const porPreco = i === 0 && g.precoPorOpcao !== false && g.opcoes.some((o) => o && o.preco != null && o.preco !== "");
+      const opcoes = g.opcoes.filter((o) => o && typeof o.nome === "string" && o.nome.trim()).map((o) => ({
+        nome: o.nome.trim(),
+        ...(porPreco && Number.isFinite(+o.preco) && o.preco !== null && o.preco !== "" ? { preco: +o.preco } : {}),
+        ...(!porPreco && +o.extra > 0 ? { extra: +o.extra } : {})
+      }));
+      return { nome: g.nome.trim(), porPreco: porPreco && opcoes.every((o) => o.preco != null), opcoes };
+    })
+    .filter((g) => g.opcoes.length);
   // Oferta: no produtos.json, "precoDe" é o preço antigo (riscado). Ex.: "preco": 30, "precoDe": 39
   // Sob consulta: produto sem preço ("sobConsulta": true) → botão "Pedir orçamento" no WhatsApp
   const consulta = (p) => !!p.sobConsulta || !(minPrice(p) > 0);
@@ -65,7 +106,7 @@
   const offPct = (p) => Math.round((1 - minPrice(p) / p.precoDe) * 100);
   const priceHtml = (p) => consulta(p) ? "Sob consulta" : (hasRange(p) ? `<small>a partir de</small>` : "")
     + (isOffer(p) ? `<s class="price__old">${brlShort(p.precoDe)}</s> ` : "") + brlShort(minPrice(p));
-  const needsChoice = (p) => consulta(p) || opts(p).length > 0 || !!p.personalizavel;
+  const needsChoice = (p) => consulta(p) || grupos(p).length > 0 || !!p.personalizavel;
 
   const etqStyle = (e) => `background:${e.fundo};color:${e.cor}`;
   const badgeHtml = (p) => {
@@ -432,8 +473,7 @@
   const keyOf = (it) => [it.id, it.variacao || "", it.custom || ""].join("|");
   const itemPrice = (it) => {
     const p = byId(it.id);
-    const o = opts(p).find((o) => o.nome === it.variacao);
-    return o?.preco ?? p.preco;
+    return precoEscolha(p, varNomes(p, it.variacao) || String(it.variacao || "").split(SEP));
   };
 
   function addToCart(item, fromEl) {
@@ -785,7 +825,6 @@
     if (!p) return;
     if (!modalOpen) modalFocus = document.activeElement;
     const fotos = p.fotos || [];
-    const o = opts(p);
     const prazo = p.prazo || CFG.prazoPadrao;
     // "Combine com" primeiro (campo "combina" do produtos.json), depois peças da mesma categoria
     const combina = (p.combina || []).map(byId).filter(Boolean);
@@ -809,9 +848,12 @@
             <p class="pm__price" data-pprice>${priceHtml(p)}</p>
             <p class="pm__desc">${esc(p.descricao)}</p>
             ${kitItens.length ? `<div class="pm__kit"><strong>Este kit tem ${kitItens.length} peças:</strong><ul>${kitItens.map((x) => `<li>${esc(x.nome)} <s>${brl(minPrice(x))}</s></li>`).join("")}</ul></div>` : ""}
-            ${o.length ? `<fieldset class="pm__opt"><legend>${esc(p.variacoes.nome || "Opção")}</legend><div class="pills">
-              ${o.map((op, i) => `<label><input type="radio" name="var" value="${esc(op.nome)}" ${i === 0 ? "checked" : ""}><span>${esc(op.nome)}${hasRange(p) ? ` <small>${brlShort(op.preco ?? p.preco)}</small>` : ""}</span></label>`).join("")}
-            </div></fieldset>` : ""}
+            ${grupos(p).map((g, gi) => `<fieldset class="pm__opt"><legend>${esc(g.nome)}</legend><div class="pills">
+              ${g.opcoes.map((op, i) => {
+                const etiqueta = g.porPreco ? (new Set(g.opcoes.map((x) => x.preco)).size > 1 ? brlShort(op.preco ?? p.preco) : "") : op.extra > 0 ? "+ " + brlShort(op.extra) : "";
+                return `<label><input type="radio" name="g${gi}" value="${esc(op.nome)}" ${i === 0 ? "checked" : ""}><span>${esc(op.nome)}${etiqueta ? ` <small>${etiqueta}</small>` : ""}</span></label>`;
+              }).join("")}
+            </div></fieldset>`).join("")}
             ${p.personalizavel ? `<label class="pm__custom">${esc(p.personalizavel)}<input name="custom" type="text" maxlength="60" placeholder="Ex.: Maria Clara"></label>` : ""}
             <div class="pm__qtyrow"><span id="pm-qty">Quantidade</span>
               <div class="qty qty--lg" role="group" aria-labelledby="pm-qty">
@@ -840,17 +882,17 @@
     const form = $("[data-pform]", panel);
     const qtyInput = form.elements.qtd;
     const current = () => {
-      const v = form.elements.var?.value;
-      const op = o.find((x) => x.nome === v);
-      return { v, price: op?.preco ?? p.preco, q: Math.min(999, Math.max(1, parseInt(qtyInput.value, 10) || 1)) };
+      const nomes = grupos(p).map((g, gi) => form.elements["g" + gi]?.value || "");
+      return { v: varTexto(nomes), nomes, price: precoEscolha(p, nomes), q: Math.min(999, Math.max(1, parseInt(qtyInput.value, 10) || 1)) };
     };
+    const linhasVar = (c) => grupos(p).map((g, gi) => (c.nomes[gi] ? `${g.nome}: ${c.nomes[gi]}` : null));
     const update = () => {
       const c = current();
       const tot = $("[data-ptotal]", panel);
       if (tot) tot.textContent = brl(c.price * c.q);
       const pmPts = $("[data-pm-pts]", panel);
       if (pmPts) pmPts.textContent = `${pontosDe(c.price * c.q).toLocaleString("pt-BR")} pontos`;
-      if (!consulta(p) && o.length && hasRange(p)) $("[data-pprice]", panel).textContent = brlShort(c.price);
+      if (!consulta(p) && hasRange(p)) $("[data-pprice]", panel).textContent = brlShort(c.price);
     };
     form.addEventListener("change", update);
     form.addEventListener("input", update);
@@ -865,12 +907,12 @@
     $("[data-pqtd]", panel)?.addEventListener("click", () => {
       const c = current();
       const custom = form.elements.custom?.value.trim() || "";
-      openWa([`Olá, Marshê! Quero um orçamento para *quantidade maior* de: *${p.nome}*`, c.v ? `${p.variacoes?.nome || "Opção"}: ${c.v}` : null, custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q > 1 ? c.q : "(informar)"} unidades`, "", "Qual o valor por unidade nessa quantidade?"].filter((x) => x !== null).join("\n"));
+      openWa([`Olá, Marshê! Quero um orçamento para *quantidade maior* de: *${p.nome}*`, ...linhasVar(c), custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q > 1 ? c.q : "(informar)"} unidades`, "", "Qual o valor por unidade nessa quantidade?"].filter((x) => x !== null).join("\n"));
     });
     $("[data-pquote]", panel)?.addEventListener("click", () => {
       const c = current();
       const custom = form.elements.custom?.value.trim() || "";
-      openWa([`Olá, Marshê! Quero um orçamento de: *${p.nome}*`, c.v ? `${p.variacoes?.nome || "Opção"}: ${c.v}` : null, custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q}`, "", "Pode me passar valor e prazo?"].filter((x) => x !== null).join("\n"));
+      openWa([`Olá, Marshê! Quero um orçamento de: *${p.nome}*`, ...linhasVar(c), custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q}`, "", "Pode me passar valor e prazo?"].filter((x) => x !== null).join("\n"));
     });
     $("[data-padd]", panel)?.addEventListener("click", () => {
       const c = current();
@@ -1170,6 +1212,7 @@
       if (l.ordem != null) p.destaque = +l.ordem - 0.5;   // ordem do painel ganha no empate com a do arquivo
       const e = l.etiqueta, hex = /^#[0-9A-Fa-f]{6}$/;
       if (e && typeof e.texto === "string" && e.texto.trim() && e.texto.length <= 24 && hex.test(e.fundo) && hex.test(e.cor)) p.etiqueta = { texto: e.texto.trim(), fundo: e.fundo, cor: e.cor, estilo: e.estilo === "selo" ? "selo" : "faixa" };
+      if (Array.isArray(l.variacoes)) p.grupos = gruposDoPainel(l.variacoes);
       if (Array.isArray(l.fotos) && l.fotos.length) p.fotos = l.fotos.filter((u) => typeof u === "string" && /^(https:\/\/|assets\/)/.test(u));
       return true;
     });
@@ -1181,13 +1224,15 @@
       return data;
     })
     .then((data) => {
+      (data.produtos || []).forEach((p) => { if (p && !p.grupos) p.grupos = gruposDoArquivo(p.variacoes); });
       PRODUCTS = (data.produtos || []).filter((p) => p && p.id && p.nome && (p.sobConsulta || p.preco > 0 || opts(p).some((o) => o.preco > 0)));
       PRODUCTS.forEach((p) => { p.categorias ||= ["Outros"]; p.fotos ||= []; p.selos ||= []; if (!(p.preco > 0) && !p.sobConsulta) p.preco = minPrice(p); });
       // Carrinhos salvos com nome antigo de opção (ex.: "7 cm · pintado à mão") passam para o nome atual ("7 cm")
       cart.forEach((it) => {
         const p = byId(it.id);
-        if (!p || !it.variacao || opts(p).some((o) => o.nome === it.variacao)) return;
-        const m = opts(p).find((o) => it.variacao.startsWith(o.nome));
+        if (!p || !it.variacao || varNomes(p, it.variacao)) return;
+        const g0 = grupos(p)[0];
+        const m = grupos(p).length === 1 && g0.opcoes.find((o) => it.variacao.startsWith(o.nome));
         if (m) it.variacao = m.nome;
       });
       renderChips();
@@ -1240,7 +1285,7 @@
           itens.forEach((i) => {
             const p = byId(i.id);
             if (!p) return;
-            const variacao = i.variacao && opts(p).some((o) => o.nome === i.variacao) ? i.variacao : (opts(p)[0]?.nome || "");
+            const variacao = i.variacao && varNomes(p, i.variacao) ? i.variacao : varPadrao(p);
             const item = { id: p.id, variacao, custom: i.custom || "", qtd: i.qtd || 1 };
             const ex = cart.find((c) => keyOf(c) === keyOf(item));
             ex ? (ex.qtd += item.qtd) : cart.push(item);
