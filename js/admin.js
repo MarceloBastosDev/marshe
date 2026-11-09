@@ -36,7 +36,18 @@ async function iniciar() {
       <pre>insert into public.admins (user_id) select id from auth.users where email = '${esc(user.email)}' on conflict do nothing;</pre></div>`;
     return;
   }
+  naoContarEsteAparelho(user.id);
   render();
+}
+
+// As visitas da própria loja não entram no Desempenho: marca o aparelho e apaga o que já foi registrado
+function naoContarEsteAparelho(uid) {
+  try {
+    localStorage.setItem("marshe:naoContar", "1");
+    const vid = localStorage.getItem("marshe:vid");
+    if (vid) sb.from("eventos").delete().eq("visitante", vid).then(() => {}, () => {});
+    sb.from("eventos").delete().eq("user_id", uid).then(() => {}, () => {});
+  } catch {}
 }
 
 function telaLogin(etapa = "email", aviso = "") {

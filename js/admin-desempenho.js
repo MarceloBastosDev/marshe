@@ -53,7 +53,12 @@ async function carregar(ctx) {
     sb.rpc("admin_pedidos", { p_status: null }).then(ok).catch(() => []),
     produtosJson || fetch("produtos.json", { cache: "no-cache" }).then((r) => r.json()).then((j) => (produtosJson = j.produtos || []))
   ]);
-  return { iv, eventos, anteriores, identidades, clientes, pedidos, catalogo: produtosJson || catalogo };
+  // tira da contagem as visitas da própria loja (conta da loja e este aparelho)
+  const eu = (await sb.auth.getSession()).data.session?.user?.id;
+  const fora = new Set([...identidades, ...eventos].filter((e) => eu && e.user_id === eu).map((e) => e.visitante));
+  try { const vid = localStorage.getItem("marshe:vid"); if (vid) fora.add(vid); } catch {}
+  const sem = (l) => l.filter((e) => !fora.has(e.visitante));
+  return { iv, eventos: sem(eventos), anteriores: sem(anteriores), identidades: sem(identidades), clientes, pedidos, catalogo: produtosJson || catalogo };
 }
 
 // quem é cada visitante: conta (login) > nome digitado ao finalizar/novidades/orçamento > anônimo
@@ -222,6 +227,7 @@ function html(c, d, ctx) {
   return `
   <div class="dsp__top">
     <div class="dsp__periodo" role="group" aria-label="Período">${PERIODOS.map(([v, l]) => `<button type="button" class="chip" aria-pressed="${periodo === v}" data-periodo="${v}">${l}</button>`).join("")}</div>
+    <span class="dsp__eu">As visitas da loja (seus aparelhos) não entram na contagem</span>
     <button type="button" class="link-btn" data-dsp-atualizar>Atualizar</button>
   </div>
 

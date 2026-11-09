@@ -161,6 +161,7 @@ export async function iniciar(loja) {
     const u = conta.user;
     if (!u || !ehContaDaLoja(u)) return "";
     if (adminDe !== u.id) { adminDe = u.id; adminOk = await api.ehAdmin(); }
+    if (adminOk) try { localStorage.setItem("marshe:naoContar", "1"); } catch {}
     return adminOk ? `<a class="acct__admin" href="admin.html"><svg class="ico" aria-hidden="true"><use href="#i-gem"/></svg><span><strong>Painel da loja</strong><small>Pedidos, clientes, pontos e preços</small></span><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>` : "";
   }
 

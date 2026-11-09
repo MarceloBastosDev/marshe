@@ -17,6 +17,8 @@
     const URLB = CFG.supabaseUrl, KEY = CFG.supabaseAnonKey;
     const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
     if (!URLB || !KEY || (local && !CFG.rastrearLocal)) return () => {};
+    // aparelhos da loja (abriram o painel ou entraram com a conta da loja) não entram na contagem
+    try { if (localStorage.getItem("marshe:naoContar") === "1") return () => {}; } catch {}
     const rid = () => (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 20);
     const ler = (s, k) => { try { return s.getItem(k); } catch { return null; } };
     const gravar = (s, k, v) => { try { s.setItem(k, v); } catch {} };

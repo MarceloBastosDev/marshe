@@ -471,3 +471,5 @@ html.crop-aberto { overflow: hidden; }
 .dsp__mais > summary { cursor: pointer; display: inline-flex; min-height: 40px; align-items: center; padding: 0 .9rem; border: 1px solid var(--linha); border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--laranja-escuro); list-style: none; }
 .dsp__mais > summary::-webkit-details-marker { display: none; }
 .dsp__mais[open] > summary { margin-bottom: .6rem; }
+.dsp__eu { margin-left: auto; font-size: .72rem; color: var(--tinta-suave); }
+@media (max-width: 599px) { .dsp__eu { order: 3; flex-basis: 100%; margin-left: 0; } }
