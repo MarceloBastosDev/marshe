@@ -775,7 +775,8 @@
   if (freteSel) freteSel.innerHTML = FRETE.map((r, i) => `<option value="${i}">${esc(r.nome)}</option>`).join("");
   if (cliente.regiao != null && freteSel && FRETE[cliente.regiao]) freteSel.value = String(cliente.regiao);
   const freteEscolhido = () => (checkout.elements.entrega.value === "Entrega / envio" ? FRETE[+freteSel?.value] || null : null);
-  const freteTexto = (r) => `${r.nome} (frete estimado a partir de ${brl(r.valor)}, entrega em ${r.prazo} depois de pronto; valor exato pelo CEP)`;
+  const freteValor = (r) => (r.valor > 0 ? "a partir de " + brl(r.valor) : "grátis");
+  const freteTexto = (r) => `${r.nome} (frete ${r.valor > 0 ? "estimado " : ""}${freteValor(r)}, entrega em ${r.prazo} depois de pronto${r.valor > 0 ? "; valor exato pelo CEP" : ""})`;
   function syncFrete() {
     const box = $("[data-frete]");
     if (!box) return;
@@ -783,16 +784,16 @@
     box.hidden = !entrega || !FRETE.length;
     const r = freteEscolhido();
     const row = $("[data-frete-row]");
-    if (row) { row.hidden = !r; if (r) $("[data-frete-val]").textContent = "a partir de " + brl(r.valor); }
+    if (row) { row.hidden = !r; if (r) { $("[data-frete-val]").textContent = r.valor > 0 ? freteValor(r) : "Grátis"; row.querySelector("dt").textContent = r.valor > 0 ? "Frete (estimado)" : "Entrega"; } }
     const totDt = $("[data-total]")?.previousElementSibling;
-    if (totDt) totDt.textContent = r ? "Total sem frete" : "Total";
-    $("[data-frete-info]").innerHTML = r ? `<strong>Frete estimado: a partir de ${brl(r.valor)}</strong> · ${esc(r.detalhe)} · entrega em ${esc(r.prazo)} depois que a peça fica pronta. O valor exato é calculado pelo CEP e confirmado na conversa, antes de pagar.` : "";
+    if (totDt) totDt.textContent = r && r.valor > 0 ? "Total sem frete" : "Total";
+    $("[data-frete-info]").innerHTML = r ? r.valor <= 0 ? `<strong>Entrega grátis</strong> · ${esc(r.detalhe)} · entrega em ${esc(r.prazo)} depois que a peça fica pronta.` : `<strong>Frete estimado: a partir de ${brl(r.valor)}</strong> · ${esc(r.detalhe)} · entrega em ${esc(r.prazo)} depois que a peça fica pronta. O valor exato é calculado pelo CEP e confirmado na conversa, antes de pagar.` : "";
   }
   // tabela na pergunta "Vocês enviam?"
   const freteTab = $("[data-frete-tabela]");
   if (freteTab && FRETE.length) freteTab.innerHTML = `<table class="frete-tabela"><thead><tr><th>Para onde</th><th>A partir de</th><th>Entrega</th></tr></thead><tbody>
     <tr><td>Retirada em Terra de Areia</td><td>Grátis</td><td>Assim que ficar pronto</td></tr>
-    ${FRETE.map((r) => `<tr><td>${esc(r.nome)}<small>${esc(r.detalhe)}</small></td><td>${brl(r.valor)}</td><td>${esc(r.prazo)}</td></tr>`).join("")}
+    ${FRETE.map((r) => `<tr><td>${esc(r.nome)}<small>${esc(r.detalhe)}</small></td><td>${r.valor > 0 ? brl(r.valor) : "Grátis"}</td><td>${esc(r.prazo)}</td></tr>`).join("")}
   </tbody></table><p class="frete-nota">O prazo de entrega começa a contar depois da produção (${esc(CFG.prazoPadrao || "")}).</p>`;
   ["nome", "cidade"].forEach((n) => { if (cliente[n]) checkout.elements[n].value = cliente[n]; });
   if (cliente.entrega) $$(`[name=entrega]`, checkout).forEach((r) => (r.checked = r.value === cliente.entrega));
@@ -818,8 +819,14 @@
       toast("Falta só o seu nome e a cidade 😉");
       return;
     }
+    abrirPasso();
+  });
+
+  // Envia o pedido pelo WhatsApp (botão da tela "último passo")
+  function enviarPedido(pagoPix) {
+    const f = checkout.elements;
     const t = totals();
-    rastro("finalizar", { valor: t.total, dados: { nome: f.nome.value.trim().slice(0, 60), cidade: f.cidade.value.trim().slice(0, 60), recebimento: freteEscolhido() ? "Entrega: " + freteEscolhido().nome : f.entrega.value, itens: cart.reduce((n, it) => n + it.qtd, 0), produtos: cart.slice(0, 20).map((it) => it.id), logado: !!conta()?.user } });
+    rastro("finalizar", { valor: t.total, dados: { pix: !!pagoPix, nome: f.nome.value.trim().slice(0, 60), cidade: f.cidade.value.trim().slice(0, 60), recebimento: freteEscolhido() ? "Entrega: " + freteEscolhido().nome : f.entrega.value, itens: cart.reduce((n, it) => n + it.qtd, 0), produtos: cart.slice(0, 20).map((it) => it.id), logado: !!conta()?.user } });
     const lines = cart.map((it) => {
       const p = byId(it.id);
       const extra = [it.variacao, it.custom && `"${it.custom}"`].filter(Boolean).join(", ");
@@ -839,6 +846,7 @@
       `Nome: ${f.nome.value.trim()}`,
       `Cidade: ${f.cidade.value.trim()}`,
       `Recebimento: ${freteEscolhido() ? "Entrega: " + freteTexto(freteEscolhido()) : f.entrega.value}`,
+      `Pagamento: ${pagoPix ? "✅ Já paguei pelo Pix (mando o comprovante aqui)" : "a combinar (Pix, cartão ou dinheiro)"}`,
       ...(t.presente && f.mensagem.value.trim() ? ["", `Mensagem do cartão: "${f.mensagem.value.trim()}"`] : []),
       ...(pedidoId ? ["", `Conta Pontos Marshê: ${conta().user.email}`] : [])
     ].join("\n");
@@ -867,7 +875,94 @@
       .catch((err) => { console.warn("Pedido não registrado:", err); toast("Não deu para registrar os pontos agora; o pedido segue pelo WhatsApp."); return montar(null); })
       .then((texto) => { if (win) win.location.href = waUrl(texto); else openWa(texto); })
       .finally(() => (btn.disabled = false));
+  }
+
+  /* ---------- Pix (QR code e copia e cola no padrão do Banco Central) ---------- */
+  const pixCampo = (id, v) => id + String(v.length).padStart(2, "0") + v;
+  const pixLimpo = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 .-]/g, "").toUpperCase().trim();
+  const crc16 = (str) => {
+    let crc = 0xffff;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= str.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+    return crc.toString(16).toUpperCase().padStart(4, "0");
+  };
+  function pixCodigo(valor) {
+    const P = CFG.pix || {};
+    if (!P.chave) return "";
+    const s0 = pixCampo("00", "01")
+      + pixCampo("26", pixCampo("00", "br.gov.bcb.pix") + pixCampo("01", P.chave))
+      + pixCampo("52", "0000") + pixCampo("53", "986")
+      + (valor > 0 ? pixCampo("54", valor.toFixed(2)) : "")
+      + pixCampo("58", "BR") + pixCampo("59", pixLimpo(P.nome || "MARSHE STUDIO 3D").slice(0, 25)) + pixCampo("60", pixLimpo(P.cidade || "TERRA DE AREIA").slice(0, 15))
+      + pixCampo("62", pixCampo("05", "***")) + "6304";
+    return s0 + crc16(s0);
+  }
+  const qrSvg = (texto) => import("https://esm.sh/qrcode-generator@1.4.4").then((m) => {
+    const qrcode = m.default || m;
+    const q = qrcode(0, "M"); q.addData(texto); q.make();
+    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: "QR code do Pix" });
   });
+
+  /* ---------- Último passo: lembra de tocar em Enviar e oferece o Pix ---------- */
+  function abrirPasso() {
+    const t = totals();
+    const r = freteEscolhido();
+    const comFrete = r && r.valor > 0;
+    const codigo = pixCodigo(t.total);
+    const el = document.createElement("div");
+    el.className = "passo";
+    el.innerHTML = `<div class="passo__card" role="dialog" aria-modal="true" aria-labelledby="passo-t" tabindex="-1">
+      <button type="button" class="passo__x" data-passo-fechar aria-label="Voltar ao carrinho">&times;</button>
+      <p class="passo__eyebrow">Falta só 1 passo</p>
+      <h2 id="passo-t">No WhatsApp, toque em <span class="passo__enviar">Enviar <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5l.01 6.6L15 12 3.01 13.9z" fill="currentColor"/></svg></span></h2>
+      <p class="passo__txt">Vamos abrir a conversa com o seu pedido já escrito. <strong>Ele só chega até nós quando você toca em Enviar.</strong> Depois confirmamos o prazo${comFrete ? ", o frete" : ""} e a forma de pagamento.</p>
+      ${codigo ? `<details class="passo__pix">
+        <summary><span class="passo__pix-ic" aria-hidden="true">PIX</span><span><strong>Quer adiantar? Pague com Pix</strong><small>${brl(t.total)}${comFrete ? " (sem o frete)" : ""} · opcional</small></span></summary>
+        <div class="passo__pix-in">
+          <div class="passo__qr" data-qr aria-hidden="true"></div>
+          <div class="passo__pix-dados">
+            <p>Abra o app do seu banco, escolha <strong>Pix → Ler QR code</strong> ou <strong>Pix copia e cola</strong>.</p>
+            <button type="button" class="btn btn--ghost passo__copiar" data-pix-copiar>Copiar código Pix</button>
+            <p class="passo__chave">Chave Pix (e-mail): <strong>${esc(CFG.pix.chave)}</strong></p>
+            <label class="check passo__pago"><input type="checkbox" data-pix-pago> <span>Já paguei pelo Pix (vou mandar o comprovante na conversa)</span></label>
+          </div>
+        </div>
+      </details>` : ""}
+      <button type="button" class="btn btn--wa btn--lg passo__ir" data-passo-ir><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Abrir WhatsApp e enviar o pedido</button>
+      <button type="button" class="link-btn passo__voltar" data-passo-fechar>Voltar ao carrinho</button>
+    </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("is-on"));
+    const card = el.querySelector(".passo__card");
+    card.focus();
+    const fechar = () => { el.classList.remove("is-on"); setTimeout(() => el.remove(), reduceMotion ? 0 : 220); document.removeEventListener("keydown", esc_); };
+    const esc_ = (e) => { if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", esc_);
+    el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-passo-fechar]")) fechar(); });
+    el.querySelector("[data-passo-ir]").addEventListener("click", () => {
+      const pago = !!el.querySelector("[data-pix-pago]")?.checked;
+      enviarPedido(pago);
+      fechar();
+    });
+    const pix = el.querySelector(".passo__pix");
+    pix?.addEventListener("toggle", () => {
+      const box = el.querySelector("[data-qr]");
+      if (!pix.open || box.dataset.ok) return;
+      box.dataset.ok = "1";
+      qrSvg(codigo).then((svg) => { box.innerHTML = svg; }).catch(() => { box.hidden = true; });
+    }, { once: false });
+    el.querySelector("[data-pix-copiar]")?.addEventListener("click", (e) => {
+      const b = e.currentTarget;
+      const ok = () => { b.textContent = "Código copiado ✓"; b.classList.add("is-ok"); setTimeout(() => { b.textContent = "Copiar código Pix"; b.classList.remove("is-ok"); }, 2500); };
+      (navigator.clipboard?.writeText(codigo) || Promise.reject()).then(ok).catch(() => {
+        const ta = document.createElement("textarea"); ta.value = codigo; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); ok(); } catch { prompt("Copie o código Pix:", codigo); }
+        ta.remove();
+      });
+    });
+  }
 
   /* ---------- Gaveta ---------- */
   let lastFocus = null;

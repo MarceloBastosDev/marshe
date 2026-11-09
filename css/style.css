@@ -1820,3 +1820,41 @@ label { font-size: .8rem; font-weight: 500; }
 .pm__ficha dt { color: var(--tinta-suave); font-weight: 500; }
 .pm__ficha dd { margin: 0; color: var(--tinta); }
 .totals [data-frete-val] { white-space: nowrap; }
+
+/* Último passo antes do WhatsApp (com Pix) */
+.passo { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; background: rgba(17, 17, 17, 0); transition: background-color .22s; }
+.passo.is-on { background: rgba(17, 17, 17, .55); }
+.passo__card { position: relative; display: grid; gap: .8rem; width: min(100%, 460px); max-height: 92dvh; overflow: auto; padding: 1.4rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #fff; transform: translateY(100%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); outline: none; }
+.passo.is-on .passo__card { transform: none; }
+.passo__x { position: absolute; top: .7rem; right: .7rem; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #F1EFEE; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.passo__eyebrow { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--laranja-escuro); }
+.passo h2 { margin: 0; padding-right: 2rem; font-size: 1.3rem; line-height: 1.3; }
+.passo__enviar { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .55rem; border-radius: 999px; background: #25D366; color: #fff; white-space: nowrap; }
+.passo__enviar svg { width: 1em; height: 1em; }
+.passo__txt { margin: 0; font-size: .9rem; line-height: 1.55; color: var(--tinta-suave); }
+.passo__txt strong { color: var(--tinta); }
+.passo__pix { border: 1px solid var(--linha); border-radius: 14px; background: #FAFAF9; }
+.passo__pix > summary { display: flex; align-items: center; gap: .7rem; padding: .8rem .9rem; cursor: pointer; list-style: none; }
+.passo__pix > summary::-webkit-details-marker { display: none; }
+.passo__pix > summary::after { content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--tinta-suave); border-bottom: 2px solid var(--tinta-suave); transform: rotate(45deg); transition: transform .2s; }
+.passo__pix[open] > summary::after { transform: rotate(-135deg); }
+.passo__pix summary span:nth-child(2) { display: grid; }
+.passo__pix summary strong { font-size: .9rem; }
+.passo__pix summary small { font-size: .76rem; color: var(--tinta-suave); }
+.passo__pix-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #32BCAD; color: #fff; font-size: .62rem; font-weight: 800; letter-spacing: .05em; }
+.passo__pix-in { display: grid; grid-template-columns: 150px 1fr; gap: .9rem; align-items: start; padding: 0 .9rem .9rem; }
+.passo__qr { width: 150px; aspect-ratio: 1; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px var(--linha); overflow: hidden; }
+.passo__qr:empty { background: linear-gradient(90deg, #F3F1EF, #fff, #F3F1EF); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.passo__qr svg { display: block; width: 100%; height: 100%; }
+.passo__pix-dados { display: grid; gap: .55rem; font-size: .8rem; color: var(--tinta-suave); }
+.passo__pix-dados p { margin: 0; line-height: 1.45; }
+.passo__copiar { min-height: 42px; font-size: .82rem; }
+.passo__copiar.is-ok { background: var(--wa); border-color: var(--wa); color: #fff; }
+.passo__chave strong { color: var(--tinta); word-break: break-all; }
+.passo__pago span { font-size: .78rem; }
+.passo__ir { width: 100%; min-height: 54px; font-size: 1rem; }
+.passo__voltar { justify-self: center; font-size: .84rem; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (max-width: 420px) { .passo__pix-in { grid-template-columns: 1fr; justify-items: center; } .passo__qr { width: 180px; } .passo__pix-dados { justify-items: stretch; text-align: center; } }
+@media (min-width: 600px) { .passo { place-items: center; } .passo__card { border-radius: 22px; transform: translateY(24px) scale(.98); opacity: 0; transition: transform .25s, opacity .2s; } .passo.is-on .passo__card { transform: none; opacity: 1; } }
+.passo__pago { text-align: left; justify-content: flex-start; }

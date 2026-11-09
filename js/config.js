@@ -25,12 +25,17 @@ window.MARSHE = {
   // CNPJ (aparece no rodapé e nas páginas de privacidade e termos)
   cnpj: "64.588.570/0001-27",
 
+  // ---------- Pix ----------
+  // Chave e dados do QR code mostrado ao finalizar (nome e cidade sem acento, como o Pix exige)
+  pix: { chave: "marshe3d@gmail.com", nome: "MARSHE STUDIO 3D", cidade: "TERRA DE AREIA" },
+
   // ---------- Envio ----------
   // Valores ESTIMADOS ("a partir de") para um pacote pequeno, de até 500 g; o valor exato sai pelo CEP
   // e é confirmado na conversa. Referência: preços dos Correios de 2026. Ajuste à vontade.
   // "prazo" é o tempo de entrega, contado depois que a peça fica pronta.
   frete: [
-    { nome: "Entrega no Litoral Norte", detalhe: "Terra de Areia, Torres, Capão da Canoa, Osório, Tramandaí e região", valor: 10, prazo: "1 a 2 dias úteis" },
+    { nome: "Entrega em Terra de Areia", detalhe: "No endereço que você indicar", valor: 0, prazo: "1 dia útil" },
+    { nome: "Entrega no Litoral Norte", detalhe: "Torres, Capão da Canoa, Osório, Tramandaí, Três Cachoeiras e região", valor: 10, prazo: "1 a 2 dias úteis" },
     { nome: "Correios para o Rio Grande do Sul", detalhe: "PAC", valor: 18, prazo: "3 a 6 dias úteis" },
     { nome: "Correios para Sul e Sudeste", detalhe: "PAC (SEDEX a partir de R$ 35)", valor: 25, prazo: "5 a 9 dias úteis" },
     { nome: "Correios para os demais estados", detalhe: "PAC (SEDEX a partir de R$ 55)", valor: 35, prazo: "7 a 14 dias úteis" }
