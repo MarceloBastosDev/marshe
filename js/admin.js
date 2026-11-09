@@ -66,9 +66,15 @@ function render() {
       <button type="button" role="tab" aria-selected="${aba === "pedidos"}" data-aba="pedidos">Pedidos</button>
       <button type="button" role="tab" aria-selected="${aba === "clientes"}" data-aba="clientes">Clientes<span class="adm__tab-x"> e pontos</span></button>
       <button type="button" role="tab" aria-selected="${aba === "precos"}" data-aba="precos">Produtos<span class="adm__tab-x"> e preços</span></button>
+      <button type="button" role="tab" aria-selected="${aba === "desempenho"}" data-aba="desempenho">Desempenho</button>
     </nav>
     <section data-conteudo><p>Carregando…</p></section>`;
-  aba === "pedidos" ? renderPedidos() : aba === "precos" ? renderPrecos() : renderClientes();
+  aba === "pedidos" ? renderPedidos() : aba === "precos" ? renderPrecos() : aba === "desempenho" ? renderDesempenhoAba() : renderClientes();
+}
+
+async function renderDesempenhoAba() {
+  const { renderDesempenho } = await import("./admin-desempenho.js");
+  renderDesempenho($("[data-conteudo]"), { sb, ok, esc, brl, waLink });
 }
 
 async function renderPedidos() {

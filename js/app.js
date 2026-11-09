@@ -9,6 +9,89 @@
   const PCT_PONTOS = CFG.cashbackPct ?? 5;
   const pontosDe = (reais) => Math.floor(reais * PCT_PONTOS); // 1 ponto = R$ 0,01
   const conta = () => window.MarsheConta;
+
+  /* ---------- Desempenho: eventos anônimos para o painel (supabase/desempenho.sql) ----------
+     Um código aleatório por navegador (visitante) e por visita (sessão); sem IP e sem dados
+     pessoais. A região (cidade/estado) vem aproximada da Vercel (/api/geo). */
+  const rastro = (() => {
+    const URLB = CFG.supabaseUrl, KEY = CFG.supabaseAnonKey;
+    const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+    if (!URLB || !KEY || (local && !CFG.rastrearLocal)) return () => {};
+    const rid = () => (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0, 20);
+    const ler = (s, k) => { try { return s.getItem(k); } catch { return null; } };
+    const gravar = (s, k, v) => { try { s.setItem(k, v); } catch {} };
+    let visitante = ler(localStorage, "marshe:vid");
+    if (!visitante) { visitante = rid(); gravar(localStorage, "marshe:vid", visitante); }
+    // a visita termina depois de 30 minutos parado
+    let sessao = null, novaSessao = false;
+    try { const s = JSON.parse(ler(sessionStorage, "marshe:sid") || "null"); if (s && Date.now() - s.t < 18e5) sessao = s.id; } catch {}
+    if (!sessao) { sessao = rid(); novaSessao = true; }
+    const tocar = () => gravar(sessionStorage, "marshe:sid", JSON.stringify({ id: sessao, t: Date.now() }));
+    tocar();
+    const coarse = matchMedia("(pointer: coarse)").matches;
+    const dispositivo = /iPad|Tablet/i.test(navigator.userAgent) || (coarse && Math.min(screen.width, screen.height) >= 700) ? "tablet" : coarse ? "celular" : "computador";
+    // de onde veio (guardado por visita)
+    let origem = ler(sessionStorage, "marshe:origem");
+    let refHost = "";
+    if (!origem || novaSessao) {
+      const q = new URLSearchParams(location.search);
+      try { refHost = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : ""; } catch {}
+      if (refHost === location.hostname.replace(/^www\./, "")) refHost = "";
+      const utm = (q.get("utm_source") || "").toLowerCase();
+      const fonte = utm || refHost;
+      origem = q.get("indica") ? "indicação"
+        : /instagram|ig$/.test(fonte) ? "instagram"
+        : /facebook|fb\.|^fb$/.test(fonte) ? "facebook"
+        : /whatsapp|wa\.me/.test(fonte) ? "whatsapp"
+        : /google/.test(fonte) ? "google"
+        : /tiktok/.test(fonte) ? "tiktok"
+        : /youtube|youtu\.be/.test(fonte) ? "youtube"
+        : /bing|duckduckgo|yahoo/.test(fonte) ? "outras buscas"
+        : fonte ? fonte.slice(0, 60) : "direto";
+      gravar(sessionStorage, "marshe:origem", origem);
+    }
+    // região aproximada (uma vez por visita)
+    let geo = null;
+    try { geo = JSON.parse(ler(sessionStorage, "marshe:geo") || "null"); } catch {}
+    const geoPronto = geo ? Promise.resolve() : fetch("/api/geo", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((g) => { geo = g || {}; gravar(sessionStorage, "marshe:geo", JSON.stringify(geo)); }).catch(() => { geo = {}; });
+    // se a pessoa está logada, o evento vai com a conta dela (o banco confere pelo token)
+    const token = () => {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!/^sb-.+-auth-token$/.test(k)) continue;
+          const s = JSON.parse(localStorage.getItem(k));
+          if (s?.access_token && (!s.expires_at || s.expires_at * 1000 > Date.now() + 30000)) return s.access_token;
+        }
+      } catch {}
+      return null;
+    };
+    const fila = [];
+    let timer = 0;
+    const enviar = (saindo = false) => {
+      clearTimeout(timer);
+      if (!fila.length) return;
+      const lote = fila.splice(0, 50).map((e) => ({ ...e, cidade: geo?.cidade || null, estado: geo?.estado || null, pais: geo?.pais || null }));
+      fetch(`${URLB}/rest/v1/eventos`, {
+        method: "POST", keepalive: saindo,
+        headers: { apikey: KEY, Authorization: `Bearer ${token() || KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify(lote)
+      }).catch(() => {});
+      if (fila.length) timer = setTimeout(enviar, 500);
+    };
+    addEventListener("pagehide", () => enviar(true));
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") enviar(true); });
+    const corta = (v, n) => (v == null ? null : String(v).slice(0, n));
+    const reg = (tipo, { produto = null, valor = null, dados = null } = {}) => {
+      tocar();
+      fila.push({ visitante, sessao, tipo, produto_id: corta(produto, 80), valor: valor == null || !isFinite(valor) ? null : Math.round(valor * 100) / 100, dados, origem, dispositivo, pagina: corta(location.pathname + location.hash, 160) });
+      clearTimeout(timer);
+      timer = setTimeout(() => geoPronto.finally(() => enviar()), tipo === "finalizar" ? 0 : 2500);
+    };
+    if (novaSessao) reg("visita", { dados: { entrada: corta(location.pathname + location.search + location.hash, 120), ref: refHost || null, tela: `${screen.width}x${screen.height}`, idioma: corta(navigator.language, 10) } });
+    return reg;
+  })();
+  window.MarsheRastro = rastro;
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   // Por padrão as animações rodam sempre; veja respeitarMovimentoReduzido em js/config.js
@@ -426,10 +509,13 @@
   const results = $("[data-results]");
   const searchForm = $("[data-hsearch]");
   const showResults = (on) => { results.hidden = !on; searchInput.setAttribute("aria-expanded", on); };
+  let buscaT = 0, ultimaBusca = "";
   function renderResults() {
     const q = norm(state.q.trim());
     if (!q) return showResults(false);
     const list = PRODUCTS.filter((p) => matchQ(p, q)).sort(SORTS.destaque);
+    clearTimeout(buscaT);
+    if (q.length >= 2) buscaT = setTimeout(() => { if (q !== ultimaBusca) { ultimaBusca = q; rastro("busca", { dados: { termo: state.q.trim().slice(0, 60), resultados: list.length } }); } }, 1500);
     results.innerHTML = list.length
       ? list.slice(0, 5).map((p) => `<a class="sr-item" href="#produto/${esc(p.id)}" role="option">
           <span class="sr-item__img">${p.fotos[0] ? imgTag(p.fotos[0], "", { sizes: "48px", eager: true }) : placeholder("")}</span>
@@ -481,16 +567,26 @@
     const found = cart.find((c) => keyOf(c) === k);
     if (found) found.qtd += item.qtd;
     else cart.push(item);
+    rastro("carrinho_add", { produto: item.id, valor: itemPrice(item) * item.qtd, dados: { variacao: item.variacao || null, qtd: item.qtd } });
     saveCart();
     fly(fromEl);
     const p = byId(item.id);
     toast(`${p.nome} no carrinho`, "Ver carrinho", openCart);
   }
 
+  let ultimoRetrato = null, retratoT = 0;
   function saveCart() {
     cart = cart.filter((c) => byId(c.id) && c.qtd > 0);
     store.set("marshe:cart", cart);
     renderCart();
+    clearTimeout(retratoT);
+    retratoT = setTimeout(() => {
+      const itens = cart.slice(0, 20).map((it) => ({ id: it.id, nome: byId(it.id)?.nome, v: it.variacao || null, q: it.qtd, p: itemPrice(it) }));
+      const sig = JSON.stringify(itens);
+      if (sig === ultimoRetrato) return;
+      ultimoRetrato = sig;
+      rastro("carrinho", { valor: itens.reduce((t, i) => t + i.p * i.q, 0), dados: { itens } });
+    }, 1500);
   }
 
   function totals() {
@@ -687,6 +783,7 @@
       return;
     }
     const t = totals();
+    rastro("finalizar", { valor: t.total, dados: { nome: f.nome.value.trim().slice(0, 60), cidade: f.cidade.value.trim().slice(0, 60), recebimento: f.entrega.value, itens: cart.reduce((n, it) => n + it.qtd, 0), produtos: cart.slice(0, 20).map((it) => it.id), logado: !!conta()?.user } });
     const lines = cart.map((it) => {
       const p = byId(it.id);
       const extra = [it.variacao, it.custom && `"${it.custom}"`].filter(Boolean).join(", ");
@@ -821,6 +918,7 @@
   }
 
   function showProduct(id) {
+    { const pv = byId(id); if (pv) rastro("produto", { produto: id, valor: minPrice(pv) }); }
     const p = byId(id);
     if (!p) return;
     if (!modalOpen) modalFocus = document.activeElement;
@@ -906,11 +1004,13 @@
     // Valor especial para quantidade: abre o WhatsApp com a peça, a opção e a quantidade
     $("[data-pqtd]", panel)?.addEventListener("click", () => {
       const c = current();
+      rastro("orcamento", { produto: p.id, dados: { tipo: "quantidade", qtd: c.q, variacao: c.v || null } });
       const custom = form.elements.custom?.value.trim() || "";
       openWa([`Olá, Marshê! Quero um orçamento para *quantidade maior* de: *${p.nome}*`, ...linhasVar(c), custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q > 1 ? c.q : "(informar)"} unidades`, "", "Qual o valor por unidade nessa quantidade?"].filter((x) => x !== null).join("\n"));
     });
     $("[data-pquote]", panel)?.addEventListener("click", () => {
       const c = current();
+      rastro("orcamento", { produto: p.id, valor: c.price * c.q, dados: { tipo: "sob consulta", qtd: c.q, variacao: c.v || null } });
       const custom = form.elements.custom?.value.trim() || "";
       openWa([`Olá, Marshê! Quero um orçamento de: *${p.nome}*`, ...linhasVar(c), custom ? `Personalização: ${custom}` : null, `Quantidade: ${c.q}`, "", "Pode me passar valor e prazo?"].filter((x) => x !== null).join("\n"));
     });
@@ -1041,6 +1141,7 @@
     const a = e.target.closest("[data-wa]");
     if (!a) return;
     e.preventDefault();
+    rastro("whatsapp", { dados: { de: (a.closest("footer") ? "rodapé" : a.classList.contains("wa-float") ? "botão flutuante" : a.closest("header") ? "topo" : "página"), texto: a.dataset.wa.slice(0, 40) } });
     openWa(a.dataset.wa);
   });
 
@@ -1056,6 +1157,8 @@
       e.preventDefault();
       if (!validate(form)) return;
       const v = (n) => form.elements[n]?.value.trim();
+      if (form.dataset.form === "novidades") rastro("novidades", { dados: { nome: (v("nome") || "").slice(0, 60) } });
+      else rastro("orcamento", { dados: { tipo: form.dataset.form === "quantidade" ? "lembrancinhas" : "personalizado", nome: (v("nome") || "").slice(0, 60) || null, quantidade: v("quantidade") || null, ocasiao: v("ocasiao") || null } });
       const msg = form.dataset.form === "novidades"
         ? ["Olá, Marshê! Quero receber as ofertas e novidades aqui no WhatsApp.", `Meu nome: ${v("nome")}`]
         : form.dataset.form === "quantidade"

@@ -236,7 +236,7 @@ export async function iniciar(loja) {
           <p class="acct__big">Falta pouco! Complete seu cadastro.</p>
           <label>Nome<input name="nome" autocomplete="name" required value="${esc(conta.perfil?.nome || conta.user.user_metadata?.full_name || conta.user.user_metadata?.name || "")}"></label>
           <label>WhatsApp<input name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="(51) 99999-9999" value="${esc(conta.perfil?.whatsapp || "")}"></label>
-          <label class="check"><input type="checkbox" name="aceite" required> <span>Li e aceito as <a href="#regulamento" data-acct-close>regras do Pontos Marshê</a> e o uso dos meus dados para o programa.</span></label>
+          <label class="check"><input type="checkbox" name="aceite" required> <span>Li e aceito as <a href="#regulamento" data-acct-close>regras do Pontos Marshê</a> e o uso dos meus dados para o programa, incluindo a loja me chamar no WhatsApp sobre meus pedidos e carrinhos (<a href="privacidade.html" target="_blank" rel="noopener">privacidade</a>).</span></label>
           <button class="btn btn--primary btn--block" type="submit">Salvar e ver meus pontos</button>
           <p class="acct__msg" data-acct-msg role="alert"></p></form>`;
       return;
@@ -406,6 +406,8 @@ export async function iniciar(loja) {
   });
 
   async function entrar(user) {
+    // liga as visitas anteriores deste navegador à conta (painel: Desempenho)
+    try { if (user && !sessionStorage.getItem("marshe:login")) { sessionStorage.setItem("marshe:login", "1"); setTimeout(() => window.MarsheRastro?.("login"), 800); } } catch {}
     conta.user = user;
     conta.perfil = user ? await api.perfil(user.id).catch(() => null) : null;
     await usarConvite();

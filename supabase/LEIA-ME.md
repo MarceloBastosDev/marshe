@@ -141,6 +141,16 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   Antes de usar pela primeira vez, rode **uma vez** o arquivo
   `supabase/produtos-detalhes.sql` no SQL Editor (New query → colar → Run).
 
+- **Desempenho**: visitantes, visitas, funil de compra (viu produto → carrinho →
+  finalizar), **carrinhos por fechar** (com botão de WhatsApp quando é cliente com
+  conta), pedidos enviados sem conta, clientes interessados, buscas sem resultado,
+  produtos mais vistos, de onde vêm as visitas, estados e cidades (aproximados),
+  aparelhos, horários de pico, quem visitou (com o caminho que fez no site) e
+  cadastros novos. Filtro: hoje, 7 dias, 30 dias, este mês, 90 dias.
+  Antes de usar, rode **uma vez** `supabase/desempenho.sql`. Os números começam a
+  contar depois que o site atualizado for publicado. Para apagar estatísticas com
+  mais de 12 meses: `select public.limpar_eventos_antigos();`
+
 - **Variações** (no mesmo cartão): até 4 características por produto
   (ex.: Tamanho, Cor, Acabamento), cada uma com suas opções. Na 1ª você pode
   marcar **Cada opção tem o seu próprio preço** (ex.: 4 cm R$ 20, 7 cm R$ 30);
