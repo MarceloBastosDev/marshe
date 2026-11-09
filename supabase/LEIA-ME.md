@@ -141,6 +141,15 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   Antes de usar pela primeira vez, rode **uma vez** o arquivo
   `supabase/produtos-detalhes.sql` no SQL Editor (New query → colar → Run).
 
+- **Fotos do produto** (no mesmo cartão): **Adicionar fotos** (abre a janela
+  de enquadrar no formato da loja, 4:5: arraste, dê zoom, gire), **Enquadrar**
+  uma foto que já está lá, **←/→** para mudar a ordem, **Tornar principal** e
+  **×** para remover. A primeira é a que aparece no card. As fotos enviadas
+  ficam no Storage do Supabase (pasta "produtos"), em 960 e 480 px.
+  **Voltar às fotos originais do arquivo** desfaz tudo.
+  Antes de usar pela primeira vez, rode **uma vez** o arquivo
+  `supabase/fotos.sql` no SQL Editor.
+
 Pontos vencidos deixam de contar sozinhos, sem precisar fazer nada.
 
 ---

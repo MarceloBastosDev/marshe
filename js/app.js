@@ -44,8 +44,9 @@
   const openWa = (text) => window.open(waUrl(text), "_blank", "noopener");
 
   /* ---------- Imagens ---------- */
-  const srcset = (src) => (/-960\.webp$/.test(src) ? `${src.replace(/-960\.webp$/, "-480.webp")} 480w, ${src} 960w` : "");
-  const small = (src) => src.replace(/-960\.webp$/, "-480.webp");
+  // fotos em duas larguras: "...-960.webp" tem a irmã "...-480.webp" (também vale para .jpg enviadas pelo painel)
+  const srcset = (src) => (/-960\.(webp|jpg)$/.test(src) ? `${small(src)} 480w, ${src} 960w` : "");
+  const small = (src) => src.replace(/-960\.(webp|jpg)$/, "-480.$1");
   const imgTag = (src, alt, { cls = "", sizes = "(max-width: 600px) 50vw, 300px", eager = false } = {}) => {
     const ss = srcset(src);
     return `<img class="${cls}" src="${esc(ss ? small(src) : src)}" ${ss ? `srcset="${ss}" sizes="${sizes}"` : ""} width="480" height="600" alt="${esc(alt)}" ${eager ? "" : 'loading="lazy"'} decoding="async">`;
@@ -1122,7 +1123,7 @@
         "@type": "ListItem", position: i + 1,
         item: {
           "@type": "Product", name: p.nome, description: p.descricao, category: p.categorias.join(", "),
-          ...(p.fotos?.[0] ? { image: base + p.fotos[0] } : {}),
+          ...(p.fotos?.[0] ? { image: /^https?:/.test(p.fotos[0]) ? p.fotos[0] : base + p.fotos[0] } : {}),
           brand: { "@type": "Brand", name: "Marshê Studio 3D" },
           offers: consulta(p) ? undefined : { "@type": "Offer", priceCurrency: "BRL", price: minPrice(p).toFixed(2), availability: "https://schema.org/MadeToOrder", url: `${base}#produto/${p.id}` }
         }
@@ -1161,6 +1162,7 @@
       if (Array.isArray(l.selos)) p.selos = [...(p.selos || []).filter((x) => !/^(novo|mais pedido)$/i.test(x)), ...l.selos];
       if (l.personalizavel != null) { if (l.personalizavel) p.personalizavel = l.personalizavel; else delete p.personalizavel; }
       if (l.ordem != null) p.destaque = +l.ordem - 0.5;   // ordem do painel ganha no empate com a do arquivo
+      if (Array.isArray(l.fotos) && l.fotos.length) p.fotos = l.fotos.filter((u) => typeof u === "string" && /^(https:\/\/|assets\/)/.test(u));
       return true;
     });
   };

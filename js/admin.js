@@ -108,6 +108,7 @@ const numero = (s) => { let t = String(s ?? "").trim().replace(/\s|R\$/g, ""); i
 const CAMPOS = ["nome", "descricao", "categorias", "selos", "personalizavel", "ordem"];
 const SELOS = ["Novo", "Mais pedido"];
 const abertos = new Set();
+const abertosFotos = new Set();
 let ajustes = new Map();
 // valores atuais = banco (se editado) ou produtos.json
 function atual(p, l) {
@@ -144,7 +145,7 @@ async function renderPrecos() {
         const preco = l?.preco ?? p.preco ?? null;
         const de = l ? l.preco_de : p.precoDe ?? null;
         const ops = p.variacoes?.opcoes || [];
-        const foto = p.fotos?.[0] ? p.fotos[0].replace(/-960\.webp$/, "-480.webp") : "";
+        const foto = fotosDe(p, l)[0] ? miniatura(fotosDe(p, l)[0]) : "";
         const d = atual(p, l);
         const editado = l && CAMPOS.some((c) => l[c] != null);
         return `<form class="adm__prod${l?.oculto ? " is-hidden" : ""}" data-preco="${esc(p.id)}">
@@ -179,6 +180,7 @@ async function renderPrecos() {
             </div>
           </details>
           <p class="adm__msg"></p>
+          ${fotosHtml(p, l)}
         </form>`;
       }).join("")}</div>`;
   } catch (e) { box.innerHTML = `<p class="adm__msg">Erro: ${esc(e.message)}. Rode o supabase/schema.sql atualizado no SQL Editor.</p>`; }
@@ -230,6 +232,197 @@ async function salvarPreco(f) {
   return nome;
 }
 
+/* ---------- Fotos dos produtos: adicionar, remover, ordenar e enquadrar ---------- */
+const BUCKET = "produtos";
+const MAX_FOTOS = 12;
+const fotosDe = (p, l) => (Array.isArray(l?.fotos) && l.fotos.length ? l.fotos : p.fotos || []);
+const miniatura = (u) => u.replace(/-960\.(webp|jpg)$/, "-480.$1");
+const doBucket = (u) => { const i = u.indexOf("/storage/v1/object/public/" + BUCKET + "/"); return i < 0 ? null : decodeURIComponent(u.slice(i + ("/storage/v1/object/public/" + BUCKET + "/").length)); };
+
+function fotosHtml(p, l) {
+  const fotos = fotosDe(p, l);
+  const proprias = Array.isArray(l?.fotos) && l.fotos.length;
+  return `<details class="adm__more adm__fotobox" data-fotos="${esc(p.id)}"${abertosFotos.has(p.id) ? " open" : ""}>
+    <summary>Fotos do produto <small>${fotos.length} ${fotos.length === 1 ? "foto" : "fotos"} · adicionar, remover, ordenar e enquadrar</small></summary>
+    <p class="adm__fotohint">A primeira foto é a principal (aparece no card). Todas ficam no formato da loja (4:5). Use <strong>Enquadrar</strong> para escolher o pedaço da foto que aparece.</p>
+    <div class="adm__fotos">
+      ${fotos.map((u, i) => `<figure class="adm__foto">
+        <img src="${esc(miniatura(u))}" alt="Foto ${i + 1}" loading="lazy">
+        ${i === 0 ? `<span class="adm__foto-tag">Principal</span>` : `<button type="button" class="adm__foto-main" data-fa="principal" data-i="${i}">Tornar principal</button>`}
+        <div class="adm__foto-acts">
+          <button type="button" data-fa="esq" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Mover para a esquerda" title="Mover para a esquerda">&larr;</button>
+          <button type="button" data-fa="crop" data-i="${i}">Enquadrar</button>
+          <button type="button" data-fa="del" data-i="${i}" aria-label="Remover foto ${i + 1}" title="Remover">&times;</button>
+          <button type="button" data-fa="dir" data-i="${i}" ${i === fotos.length - 1 ? "disabled" : ""} aria-label="Mover para a direita" title="Mover para a direita">&rarr;</button>
+        </div>
+      </figure>`).join("")}
+      ${fotos.length < MAX_FOTOS ? `<label class="adm__foto-add"><input type="file" accept="image/*" multiple data-fa-add><span><b>+</b> Adicionar fotos</span><small>JPG, PNG ou WebP</small></label>` : ""}
+    </div>
+    ${proprias ? `<button class="link-btn" type="button" data-fa="reset">Voltar às fotos originais do arquivo</button>` : ""}
+    <p class="adm__msg" data-fotos-msg></p>
+  </details>`;
+}
+
+// Grava a lista de fotos do produto (cria a linha do produto se ainda não existir, sem mudar preço)
+async function salvarFotos(p, fotos) {
+  const l = ajustes.get(p.id);
+  if (l) ok(await sb.from("precos").update({ fotos }).eq("produto_id", p.id));
+  else ok(await sb.from("precos").insert({ produto_id: p.id, preco: p.preco ?? null, preco_de: p.precoDe ?? null, sob_consulta: !!p.sobConsulta, fotos }));
+}
+async function apagarDoBucket(urls) {
+  const paths = urls.map(doBucket).filter(Boolean).flatMap((x) => [x, x.replace(/-960\.(webp|jpg)$/, "-480.$1")]);
+  if (paths.length) await sb.storage.from(BUCKET).remove(paths).catch(() => {});
+}
+async function enviarFoto(p, { b960, b480, ext, type }) {
+  const base = `${p.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  for (const [blob, tam] of [[b960, 960], [b480, 480]]) {
+    ok(await sb.storage.from(BUCKET).upload(`${base}-${tam}.${ext}`, blob, { contentType: type, cacheControl: "31536000", upsert: false }));
+  }
+  return sb.storage.from(BUCKET).getPublicUrl(`${base}-960.${ext}`).data.publicUrl;
+}
+
+async function acaoFoto(box, acao, i, arquivos) {
+  const p = catalogo.find((x) => x.id === box.dataset.fotos);
+  const l = ajustes.get(p.id);
+  const fotos = [...fotosDe(p, l)];
+  const msg = box.querySelector("[data-fotos-msg]");
+  const status = (t) => { if (msg) msg.textContent = t; };
+  abertosFotos.add(p.id);
+  try {
+    if (acao === "esq" || acao === "dir") { const j = acao === "esq" ? i - 1 : i + 1; [fotos[i], fotos[j]] = [fotos[j], fotos[i]]; await salvarFotos(p, fotos); aviso("Ordem das fotos salva."); }
+    else if (acao === "principal") { fotos.unshift(...fotos.splice(i, 1)); await salvarFotos(p, fotos); aviso("Foto principal trocada."); }
+    else if (acao === "del") {
+      if (fotos.length === 1) throw new Error("O produto precisa de pelo menos uma foto. Adicione outra antes de remover esta.");
+      if (!confirm("Remover esta foto do produto?")) return;
+      const [saiu] = fotos.splice(i, 1);
+      await salvarFotos(p, fotos); await apagarDoBucket([saiu]); aviso("Foto removida.");
+    }
+    else if (acao === "reset") {
+      if (!confirm("Voltar às fotos originais do arquivo? As fotos enviadas pelo painel saem do produto.")) return;
+      const enviadas = (l?.fotos || []).filter((u) => doBucket(u));
+      ok(await sb.from("precos").update({ fotos: null }).eq("produto_id", p.id));
+      await apagarDoBucket(enviadas); aviso("Fotos originais de volta.");
+    }
+    else if (acao === "crop") {
+      const r = await enquadrar(fotos[i].replace(/-480\.(webp|jpg)$/, "-960.$1"));
+      if (!r) return;
+      status("Enviando a foto enquadrada…");
+      const nova = await enviarFoto(p, r);
+      const velha = fotos[i]; fotos[i] = nova;
+      await salvarFotos(p, fotos); await apagarDoBucket([velha]); aviso("Foto enquadrada e salva.");
+    }
+    else if (acao === "add") {
+      const lista = [...arquivos].filter((f) => f.type.startsWith("image/"));
+      if (!lista.length) return;
+      let n = 0;
+      for (const f of lista) {
+        if (fotos.length >= MAX_FOTOS) { aviso(`Limite de ${MAX_FOTOS} fotos por produto.`); break; }
+        const r = await enquadrar(f, lista.length > 1 ? `Foto ${n + 1} de ${lista.length}` : "");
+        if (!r) continue;
+        status("Enviando foto…");
+        fotos.push(await enviarFoto(p, r)); n++;
+        await salvarFotos(p, fotos);
+      }
+      if (n) aviso(n === 1 ? "Foto adicionada." : `${n} fotos adicionadas.`);
+    }
+    renderPrecos();
+  } catch (e) { status(erroProduto(e.message)); }
+}
+
+/* Enquadrar: janela com a moldura da loja (4:5); arrastar move, controle/roda dá zoom, botão gira.
+   Gera as versões 960×1200 e 480×600 (WebP; JPEG se o navegador não fizer WebP). */
+function carregarImagem(src) {
+  if (src instanceof Blob) {
+    if ("createImageBitmap" in window) return createImageBitmap(src, { imageOrientation: "from-image" }).catch(() => carregarImagem(URL.createObjectURL(src)));
+    src = URL.createObjectURL(src);
+  }
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("Não foi possível abrir esta imagem."));
+    im.src = src;
+  });
+}
+async function enquadrar(src, titulo = "") {
+  const img = await carregarImagem(src);
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const W = 480, H = 600;
+  const dlg = document.createElement("dialog");
+  dlg.className = "crop";
+  dlg.innerHTML = `<form method="dialog" class="crop__in">
+      <header class="crop__head"><strong>Enquadrar foto</strong>${titulo ? `<small>${esc(titulo)}</small>` : ""}</header>
+      <div class="crop__stage"><canvas width="${W}" height="${H}" aria-label="Arraste para posicionar a foto"></canvas><span class="crop__grid" aria-hidden="true"></span></div>
+      <p class="crop__tip">Arraste a foto para posicionar. Use o controle ou a roda do mouse para aproximar.</p>
+      <div class="crop__tools">
+        <label class="crop__zoom">Zoom<input type="range" min="1" max="4" step="0.01" value="1" data-z></label>
+        <button type="button" class="btn btn--ghost" data-rot>Girar</button>
+        <button type="button" class="btn btn--ghost" data-fit>Centralizar</button>
+      </div>
+      <footer class="crop__foot">
+        <button type="button" class="btn btn--ghost" data-cancel>Cancelar</button>
+        <button type="button" class="btn btn--primary" data-ok>Usar esta foto</button>
+      </footer>
+    </form>`;
+  document.body.appendChild(dlg);
+  const cv = dlg.querySelector("canvas"), ctx = cv.getContext("2d"), zoom = dlg.querySelector("[data-z]");
+  let rot = 0, z = 1, cx, cy;
+  const dims = () => (rot % 2 ? [ih, iw] : [iw, ih]);
+  const escala = (w = W, h = H) => { const [rw, rh] = dims(); return Math.max(w / rw, h / rh) * z; };
+  const limitar = () => {
+    const [rw, rh] = dims(), sc = escala();
+    const hw = W / (2 * sc), hh = H / (2 * sc);
+    cx = Math.min(Math.max(cx, hw), rw - hw); cy = Math.min(Math.max(cy, hh), rh - hh);
+  };
+  const centralizar = () => { const [rw, rh] = dims(); cx = rw / 2; cy = rh / 2; };
+  const desenhar = (c, w, h) => {
+    const [rw, rh] = dims(), sc = escala(w, h);
+    c.save(); c.fillStyle = "#fff"; c.fillRect(0, 0, w, h);
+    c.translate(w / 2, h / 2); c.scale(sc, sc); c.translate(-cx, -cy);
+    c.translate(rw / 2, rh / 2); c.rotate((rot * Math.PI) / 2); c.drawImage(img, -iw / 2, -ih / 2);
+    c.restore();
+  };
+  const pintar = () => { limitar(); ctx.imageSmoothingQuality = "high"; desenhar(ctx, W, H); };
+  centralizar(); pintar();
+
+  let arr = null;
+  cv.addEventListener("pointerdown", (e) => { arr = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); cv.classList.add("is-drag"); });
+  cv.addEventListener("pointermove", (e) => {
+    if (!arr) return;
+    const k = W / cv.clientWidth, sc = escala();
+    cx -= ((e.clientX - arr.x) * k) / sc; cy -= ((e.clientY - arr.y) * k) / sc;
+    arr = { x: e.clientX, y: e.clientY }; pintar();
+  });
+  const soltar = () => { arr = null; cv.classList.remove("is-drag"); };
+  cv.addEventListener("pointerup", soltar); cv.addEventListener("pointercancel", soltar);
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); z = Math.min(4, Math.max(1, z * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); zoom.value = z; pintar(); }, { passive: false });
+  zoom.addEventListener("input", () => { z = +zoom.value; pintar(); });
+  dlg.querySelector("[data-rot]").addEventListener("click", () => { rot = (rot + 1) % 4; z = 1; zoom.value = 1; centralizar(); pintar(); });
+  dlg.querySelector("[data-fit]").addEventListener("click", () => { z = 1; zoom.value = 1; centralizar(); pintar(); });
+
+  const gerar = async (w, h, type, q) => {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d"); g.imageSmoothingQuality = "high"; desenhar(g, w, h);
+    return new Promise((r) => c.toBlob(r, type, q));
+  };
+  return new Promise((resolve) => {
+    const fim = (v) => { dlg.close(); dlg.remove(); resolve(v); };
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); fim(null); });
+    dlg.querySelector("[data-cancel]").addEventListener("click", () => fim(null));
+    dlg.querySelector("[data-ok]").addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true; e.currentTarget.textContent = "Preparando…";
+      try {
+        let b960 = await gerar(960, 1200, "image/webp", 0.84), type = "image/webp", ext = "webp";
+        if (!b960 || b960.type !== "image/webp") { b960 = await gerar(960, 1200, "image/jpeg", 0.86); type = "image/jpeg"; ext = "jpg"; }
+        const b480 = await gerar(480, 600, type, type === "image/webp" ? 0.8 : 0.84);
+        fim({ b960, b480, ext, type });
+      } catch { aviso("Não foi possível preparar esta foto. Tente outra imagem."); fim(null); }
+    });
+    dlg.showModal();
+  });
+}
+
+
 async function renderClientes() {
   const box = $("[data-conteudo]");
   box.innerHTML = `<form class="adm__search" data-busca><input type="search" name="q" placeholder="Buscar por nome, e-mail ou WhatsApp" value="${esc(busca)}"><button class="btn btn--primary" type="submit">Buscar</button></form><div data-clientes><p>Carregando…</p></div>`;
@@ -280,6 +473,8 @@ app.addEventListener("submit", async (e) => {
 
 // Erros do banco ao salvar um produto, em português
 function erroProduto(msg) {
+  if (/bucket not found|precos_fotos|column "?fotos|'fotos' column/i.test(msg)) return "O banco ainda não está pronto para fotos. Rode o arquivo supabase/fotos.sql no SQL Editor do Supabase (uma vez só).";
+  if (/mime|file size|payload too large|exceeded/i.test(msg)) return "Arquivo não aceito: a foto precisa ser JPG, PNG ou WebP.";
   if (/column|schema cache/i.test(msg)) return "O banco ainda não tem os campos de detalhes. Rode o arquivo supabase/produtos-detalhes.sql no SQL Editor do Supabase (uma vez só).";
   if (/precos_nome_tam/.test(msg)) return "O nome precisa ter de 2 a 80 caracteres.";
   if (/precos_descricao_tam/.test(msg)) return "A descrição pode ter no máximo 700 caracteres.";
@@ -297,8 +492,15 @@ app.addEventListener("input", (e) => {
   if (t) t.closest("label").querySelector("[data-count]").textContent = `${t.value.length}/700`;
 });
 
+app.addEventListener("change", (e) => {
+  const inp = e.target.closest("[data-fa-add]");
+  if (inp) { const box = inp.closest("[data-fotos]"); acaoFoto(box, "add", 0, inp.files); inp.value = ""; }
+});
+
 app.addEventListener("click", async (e) => {
   if (e.target.closest("[data-login-link]")) return telaLogin("link");
+  const fa = e.target.closest("[data-fa]");
+  if (fa) { const box = fa.closest("[data-fotos]"); fa.disabled = true; await acaoFoto(box, fa.dataset.fa, +fa.dataset.i || 0); fa.disabled = false; return; }
   const rest = e.target.closest("[data-restaurar]");
   if (rest) {
     if (!confirm("Voltar nome, descrição, categorias, selos, personalização e ordem para os dados originais do arquivo? Os preços não mudam.")) return;
