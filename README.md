@@ -1,35 +1,40 @@
 # Marshê Studio 3D
 
-Site institucional da **Marshê Studio 3D** — Terra de Areia/RS.
-Produtos e peças personalizadas em impressão 3D.
+Loja da **Marshê Studio 3D** (Terra de Areia/RS): peças e personalizados em
+impressão 3D, com o pedido fechado pelo WhatsApp. Site: www.marshe3d.com.br
 
 ## Estrutura
 
 ```
-index.html   página única, dividida em seções comentadas
-styles.css   estilos (as cores da marca ficam nas variáveis do topo)
-script.js    filtros por categoria, ordenação e carrossel dos destaques
-assets/      logos, ícones e ilustrações
-assets/Fotos Produtos/   fotos dos produtos
+index.html          loja (página única)
+admin.html          painel da loja: pedidos, clientes, pontos, preços e detalhes dos produtos
+privacidade.html    política de privacidade
+termos.html         termos de uso
+produtos.json       catálogo (nome, descrição, preço, fotos, categorias, kits)
+js/config.js        configurações: WhatsApp, descontos, Black Marshê, Supabase, pontos
+js/app.js           loja: catálogo, filtros, busca, carrinho e pedido
+js/conta.js         conta do cliente e Pontos Marshê (Supabase)
+js/admin.js         painel da loja
+css/                estilos (cores da marca nas variáveis do topo de style.css)
+assets/             logos, fontes, imagens e fotos dos produtos (WebP 480/960)
+supabase/           SQL do banco e passo a passo (LEIA-ME.md)
 ```
 
 ## Como rodar
 
-Não há build nem dependências: basta abrir `index.html` no navegador.
-Para servir localmente:
+Não há build nem dependências. Para testar no computador, sirva a pasta:
 
 ```bash
 python -m http.server 8000
 ```
 
+e abra http://localhost:8000 (abrir o `index.html` direto não carrega o `produtos.json`).
+
 ## Manutenção
 
-- **Novo produto:** duplique um bloco `<article class="produto">` dentro da
-  categoria desejada em `index.html` e ajuste foto, nome, descrição, preço e
-  a data em `data-adicionado`.
-- **Destaques:** a classe `produto-destaque` define quais peças abrem o
-  carrossel.
-- **Nova categoria:** copie um bloco `<div class="grupo" data-categoria="...">`
-  e acrescente um botão com o mesmo `data-categoria` na lista de filtros.
-- **Fotos:** proporção 4:5 (1080 × 1350), JPG com cerca de 250 KB.
-- **Promoção:** o texto da faixa fica no topo do `<body>`.
+- **Preços e detalhes dos produtos:** pelo painel (`/admin.html`), na aba
+  *Produtos e preços*. A loja atualiza na hora.
+- **Novo produto ou novas fotos:** edite o `produtos.json` e coloque as fotos em
+  `assets/produtos/` (versões `-480.webp` e `-960.webp`).
+- **Banco de dados (Supabase):** veja `supabase/LEIA-ME.md`.
+- **Publicação:** cada envio para a branch `main` publica sozinho na Vercel.
