@@ -11,16 +11,30 @@ window.MARSHE = {
   descontoPrimeiroPedido: 10,
 
   // Prazo de produção mostrado nos produtos (cada produto pode ter "prazo" próprio no produtos.json)
-  prazoPadrao: "[A CONFIRMAR] dias úteis",
+  prazoPadrao: "3 a 5 dias úteis",
 
   // Se este arquivo existir, o destaque do topo vira a peça girando em 3D
   modelo3d: "assets/3d/destaque.glb",
   // Produto ligado ao destaque do topo
-  produtoDestaque: "mascara-obito",
+  produtoDestaque: "nossa-senhora-aparecida",
 
   // false = animações rodam sempre, mesmo com "movimento reduzido" ligado no aparelho.
   // true  = quem pediu menos movimento no aparelho vê só fades curtos (recomendado para acessibilidade).
   respeitarMovimentoReduzido: false,
+
+  // CNPJ (aparece no rodapé e nas páginas de privacidade e termos)
+  cnpj: "64.588.570/0001-27",
+
+  // ---------- Envio ----------
+  // Valores ESTIMADOS ("a partir de") para um pacote pequeno, de até 500 g; o valor exato sai pelo CEP
+  // e é confirmado na conversa. Referência: preços dos Correios de 2026. Ajuste à vontade.
+  // "prazo" é o tempo de entrega, contado depois que a peça fica pronta.
+  frete: [
+    { nome: "Entrega no Litoral Norte", detalhe: "Terra de Areia, Torres, Capão da Canoa, Osório, Tramandaí e região", valor: 10, prazo: "1 a 2 dias úteis" },
+    { nome: "Correios para o Rio Grande do Sul", detalhe: "PAC", valor: 18, prazo: "3 a 6 dias úteis" },
+    { nome: "Correios para Sul e Sudeste", detalhe: "PAC (SEDEX a partir de R$ 35)", valor: 25, prazo: "5 a 9 dias úteis" },
+    { nome: "Correios para os demais estados", detalhe: "PAC (SEDEX a partir de R$ 55)", valor: 35, prazo: "7 a 14 dias úteis" }
+  ],
 
   // ---------- Vendas ----------
   // Fim da Black Friday (a contagem regressiva some sozinha depois dessa data)

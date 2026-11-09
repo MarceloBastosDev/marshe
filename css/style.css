@@ -1799,3 +1799,24 @@ label { font-size: .8rem; font-weight: 500; }
 .card__tags { position: absolute; z-index: 3; top: .6rem; left: .6rem; display: grid; justify-items: start; gap: .3rem; pointer-events: none; }
 .card__tags .card__tag { position: static; }
 .card__tag--etq { text-transform: uppercase; letter-spacing: .06em; font-size: .64rem; }
+
+/* Envio: região e frete estimado no carrinho; tabela nas dúvidas */
+.frete { display: grid; gap: .45rem; margin-top: .2rem; }
+.frete label { display: grid; gap: .3rem; font-size: .8rem; font-weight: 600; }
+.frete select { min-height: 44px; padding: .5rem .7rem; border: 1px solid var(--linha); border-radius: 10px; background: #fff; font: inherit; font-size: .9rem; }
+.frete__info { margin: 0; padding: .6rem .75rem; border-radius: 10px; background: #FFF6F1; font-size: .76rem; line-height: 1.45; color: var(--tinta-suave); }
+.frete__info strong { color: var(--tinta); }
+.frete-tabela { width: 100%; margin: .6rem 0 .4rem; border-collapse: collapse; font-size: .85rem; }
+.frete-tabela th { padding: .45rem .5rem; border-bottom: 1px solid var(--linha); font-size: .74rem; color: var(--tinta-suave); text-align: left; }
+.frete-tabela td { padding: .55rem .5rem; border-bottom: 1px solid #F1EFEE; vertical-align: top; }
+.frete-tabela td:nth-child(2) { font-weight: 700; white-space: nowrap; }
+.frete-tabela td small { display: block; font-size: .72rem; color: var(--tinta-suave); }
+.frete-nota { margin: 0; font-size: .76rem; color: var(--tinta-suave); }
+
+/* Ficha técnica na janela do produto */
+.pm__ficha { display: grid; gap: 0; margin: .2rem 0 1rem; border: 1px solid var(--linha); border-radius: 12px; overflow: hidden; font-size: .84rem; }
+.pm__ficha > div { display: grid; grid-template-columns: 7.5rem 1fr; gap: .6rem; padding: .5rem .8rem; }
+.pm__ficha > div:nth-child(odd) { background: #FAFAF9; }
+.pm__ficha dt { color: var(--tinta-suave); font-weight: 500; }
+.pm__ficha dd { margin: 0; color: var(--tinta); }
+.totals [data-frete-val] { white-space: nowrap; }

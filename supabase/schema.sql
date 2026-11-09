@@ -545,3 +545,10 @@ begin
 end $$;
 revoke all on function public.limpar_eventos_antigos() from public, anon;
 grant execute on function public.limpar_eventos_antigos() to authenticated;
+
+-- ---------- Ficha técnica (mesmo conteúdo de ficha.sql) ----------
+alter table public.precos add column if not exists ficha jsonb;
+alter table public.precos drop constraint if exists precos_ficha_valida;
+alter table public.precos add constraint precos_ficha_valida check (
+  ficha is null or (jsonb_typeof(ficha) = 'object' and octet_length(ficha::text) <= 2000 and ficha::text !~ '[<>]')
+);

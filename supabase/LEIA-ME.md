@@ -151,6 +151,10 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   contar depois que o site atualizado for publicado. Para apagar estatísticas com
   mais de 12 meses: `select public.limpar_eventos_antigos();`
 
+- **Ficha técnica** (em Editar detalhes): medidas, material, cores, acabamento,
+  peso e outras informações; aparece na página do produto só o que for preenchido.
+  Antes de usar, rode **uma vez** `supabase/ficha.sql`.
+
 - **Variações** (no mesmo cartão): até 4 características por produto
   (ex.: Tamanho, Cor, Acabamento), cada uma com suas opções. Na 1ª você pode
   marcar **Cada opção tem o seu próprio preço** (ex.: 4 cm R$ 20, 7 cm R$ 30);

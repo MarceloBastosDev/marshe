@@ -473,3 +473,7 @@ html.crop-aberto { overflow: hidden; }
 .dsp__mais[open] > summary { margin-bottom: .6rem; }
 .dsp__eu { margin-left: auto; font-size: .72rem; color: var(--tinta-suave); }
 @media (max-width: 599px) { .dsp__eu { order: 3; flex-basis: 100%; margin-left: 0; } }
+
+/* Ficha técnica no painel */
+.adm__ficha-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem .8rem; }
+.adm__ficha-grid label { display: grid; gap: .3rem; font-size: .76rem; font-weight: 600; color: var(--tinta); }

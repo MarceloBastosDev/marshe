@@ -191,6 +191,12 @@
   const offPct = (p) => Math.round((1 - minPrice(p) / p.precoDe) * 100);
   const priceHtml = (p) => consulta(p) ? "Sob consulta" : (hasRange(p) ? `<small>a partir de</small>` : "")
     + (isOffer(p) ? `<s class="price__old">${brlShort(p.precoDe)}</s> ` : "") + brlShort(minPrice(p));
+  // ficha técnica (só os campos preenchidos)
+  const FICHA_ROT = [["medidas", "Medidas"], ["material", "Material"], ["cores", "Cores"], ["acabamento", "Acabamento"], ["peso", "Peso"], ["outros", "Detalhes"]];
+  const fichaHtml = (p) => {
+    const linhas = FICHA_ROT.filter(([k]) => typeof p.ficha?.[k] === "string" && p.ficha[k].trim());
+    return linhas.length ? `<dl class="pm__ficha">${linhas.map(([k, r]) => `<div><dt>${r}</dt><dd>${esc(p.ficha[k].slice(0, 120))}</dd></div>`).join("")}</dl>` : "";
+  };
   const needsChoice = (p) => consulta(p) || grupos(p).length > 0 || !!p.personalizavel;
 
   const etqStyle = (e) => `background:${e.fundo};color:${e.cor}`;
@@ -762,17 +768,45 @@
   // Dados do cliente salvos
   const checkout = $("[data-checkout]");
   const cliente = store.get("marshe:cliente", {});
+
+  /* ---------- Envio: tabela estimada (js/config.js → frete) ---------- */
+  const FRETE = Array.isArray(CFG.frete) ? CFG.frete : [];
+  const freteSel = $("[data-frete-regiao]");
+  if (freteSel) freteSel.innerHTML = FRETE.map((r, i) => `<option value="${i}">${esc(r.nome)}</option>`).join("");
+  if (cliente.regiao != null && freteSel && FRETE[cliente.regiao]) freteSel.value = String(cliente.regiao);
+  const freteEscolhido = () => (checkout.elements.entrega.value === "Entrega / envio" ? FRETE[+freteSel?.value] || null : null);
+  const freteTexto = (r) => `${r.nome} (frete estimado a partir de ${brl(r.valor)}, entrega em ${r.prazo} depois de pronto; valor exato pelo CEP)`;
+  function syncFrete() {
+    const box = $("[data-frete]");
+    if (!box) return;
+    const entrega = checkout.elements.entrega.value === "Entrega / envio";
+    box.hidden = !entrega || !FRETE.length;
+    const r = freteEscolhido();
+    const row = $("[data-frete-row]");
+    if (row) { row.hidden = !r; if (r) $("[data-frete-val]").textContent = "a partir de " + brl(r.valor); }
+    const totDt = $("[data-total]")?.previousElementSibling;
+    if (totDt) totDt.textContent = r ? "Total sem frete" : "Total";
+    $("[data-frete-info]").innerHTML = r ? `<strong>Frete estimado: a partir de ${brl(r.valor)}</strong> · ${esc(r.detalhe)} · entrega em ${esc(r.prazo)} depois que a peça fica pronta. O valor exato é calculado pelo CEP e confirmado na conversa, antes de pagar.` : "";
+  }
+  // tabela na pergunta "Vocês enviam?"
+  const freteTab = $("[data-frete-tabela]");
+  if (freteTab && FRETE.length) freteTab.innerHTML = `<table class="frete-tabela"><thead><tr><th>Para onde</th><th>A partir de</th><th>Entrega</th></tr></thead><tbody>
+    <tr><td>Retirada em Terra de Areia</td><td>Grátis</td><td>Assim que ficar pronto</td></tr>
+    ${FRETE.map((r) => `<tr><td>${esc(r.nome)}<small>${esc(r.detalhe)}</small></td><td>${brl(r.valor)}</td><td>${esc(r.prazo)}</td></tr>`).join("")}
+  </tbody></table><p class="frete-nota">O prazo de entrega começa a contar depois da produção (${esc(CFG.prazoPadrao || "")}).</p>`;
   ["nome", "cidade"].forEach((n) => { if (cliente[n]) checkout.elements[n].value = cliente[n]; });
   if (cliente.entrega) $$(`[name=entrega]`, checkout).forEach((r) => (r.checked = r.value === cliente.entrega));
   if (cliente.primeiro !== undefined) checkout.elements.primeiro.checked = cliente.primeiro;
   checkout.addEventListener("input", () => {
     store.set("marshe:cliente", {
       nome: checkout.elements.nome.value, cidade: checkout.elements.cidade.value,
-      entrega: checkout.elements.entrega.value, primeiro: checkout.elements.primeiro.checked
+      entrega: checkout.elements.entrega.value, primeiro: checkout.elements.primeiro.checked, regiao: freteSel ? +freteSel.value : null
     });
+    syncFrete();
     renderCart();
   });
   checkout.addEventListener("submit", (e) => e.preventDefault());
+  syncFrete();
 
   $("[data-finish]").addEventListener("click", () => {
     const f = checkout.elements;
@@ -785,7 +819,7 @@
       return;
     }
     const t = totals();
-    rastro("finalizar", { valor: t.total, dados: { nome: f.nome.value.trim().slice(0, 60), cidade: f.cidade.value.trim().slice(0, 60), recebimento: f.entrega.value, itens: cart.reduce((n, it) => n + it.qtd, 0), produtos: cart.slice(0, 20).map((it) => it.id), logado: !!conta()?.user } });
+    rastro("finalizar", { valor: t.total, dados: { nome: f.nome.value.trim().slice(0, 60), cidade: f.cidade.value.trim().slice(0, 60), recebimento: freteEscolhido() ? "Entrega: " + freteEscolhido().nome : f.entrega.value, itens: cart.reduce((n, it) => n + it.qtd, 0), produtos: cart.slice(0, 20).map((it) => it.id), logado: !!conta()?.user } });
     const lines = cart.map((it) => {
       const p = byId(it.id);
       const extra = [it.variacao, it.custom && `"${it.custom}"`].filter(Boolean).join(", ");
@@ -804,7 +838,7 @@
       "",
       `Nome: ${f.nome.value.trim()}`,
       `Cidade: ${f.cidade.value.trim()}`,
-      `Recebimento: ${f.entrega.value}`,
+      `Recebimento: ${freteEscolhido() ? "Entrega: " + freteTexto(freteEscolhido()) : f.entrega.value}`,
       ...(t.presente && f.mensagem.value.trim() ? ["", `Mensagem do cartão: "${f.mensagem.value.trim()}"`] : []),
       ...(pedidoId ? ["", `Conta Pontos Marshê: ${conta().user.email}`] : [])
     ].join("\n");
@@ -821,7 +855,7 @@
       itens: [...cart.map((it) => ({ id: it.id, nome: byId(it.id).nome, variacao: it.variacao || null, custom: it.custom || null, qtd: it.qtd, preco: itemPrice(it) })),
         ...(t.presente ? [{ id: "embalagem", nome: "Embalagem de presente", custom: f.mensagem.value.trim() || null, qtd: 1, preco: t.gift }] : [])],
       subtotal: t.sub, desconto: t.disc, pontos_usados: t.ptsUsados, total: t.total,
-      nome: f.nome.value.trim(), cidade: f.cidade.value.trim(), recebimento: f.entrega.value
+      nome: f.nome.value.trim(), cidade: f.cidade.value.trim(), recebimento: freteEscolhido() ? "Entrega: " + freteEscolhido().nome : f.entrega.value
     })
       .then((id) => {
         const texto = montar(id);
@@ -947,6 +981,7 @@
             <h2 class="pm__title" id="pm-title">${esc(p.nome)}</h2>
             <p class="pm__price" data-pprice>${priceHtml(p)}</p>
             <p class="pm__desc">${esc(p.descricao)}</p>
+            ${fichaHtml(p)}
             ${kitItens.length ? `<div class="pm__kit"><strong>Este kit tem ${kitItens.length} peças:</strong><ul>${kitItens.map((x) => `<li>${esc(x.nome)} <s>${brl(minPrice(x))}</s></li>`).join("")}</ul></div>` : ""}
             ${grupos(p).map((g, gi) => `<fieldset class="pm__opt"><legend>${esc(g.nome)}</legend><div class="pills">
               ${g.opcoes.map((op, i) => {
@@ -1318,6 +1353,7 @@
       const e = l.etiqueta, hex = /^#[0-9A-Fa-f]{6}$/;
       if (e && typeof e.texto === "string" && e.texto.trim() && e.texto.length <= 24 && hex.test(e.fundo) && hex.test(e.cor)) p.etiqueta = { texto: e.texto.trim(), fundo: e.fundo, cor: e.cor, estilo: e.estilo === "selo" ? "selo" : "faixa" };
       if (Array.isArray(l.variacoes)) p.grupos = gruposDoPainel(l.variacoes);
+      if (l.ficha && typeof l.ficha === "object" && !Array.isArray(l.ficha)) p.ficha = l.ficha;
       if (Array.isArray(l.fotos) && l.fotos.length) p.fotos = l.fotos.filter((u) => typeof u === "string" && /^(https:\/\/|assets\/)/.test(u));
       return true;
     });

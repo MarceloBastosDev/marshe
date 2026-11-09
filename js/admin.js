@@ -122,7 +122,9 @@ let catalogo = null, buscaProd = "";
 const reais = (v) => (v == null || v === "" ? "" : String(v).replace(".", ","));
 // aceita "12", "12,5", "12,50", "1.234,56" e "R$ 12,00"
 const numero = (s) => { let t = String(s ?? "").trim().replace(/\s|R\$/g, ""); if (t.includes(",")) t = t.replace(/\./g, "").replace(",", "."); return t === "" ? null : Number(t); };
-const CAMPOS = ["nome", "descricao", "categorias", "selos", "personalizavel", "ordem", "etiqueta"];
+const CAMPOS = ["nome", "descricao", "categorias", "selos", "personalizavel", "ordem", "etiqueta", "ficha"];
+// ficha técnica: campos mostrados na janela do produto (só os preenchidos)
+const FICHA = [["medidas", "Medidas", "Ex.: 12 cm de altura × 6 cm de largura"], ["material", "Material", "Ex.: PLA (plástico biodegradável)"], ["cores", "Cores disponíveis", "Ex.: branco, dourado, azul"], ["acabamento", "Acabamento", "Ex.: pintado à mão com verniz"], ["peso", "Peso", "Ex.: 80 g"], ["outros", "Outras informações", "Ex.: acompanha base, vem em caixinha"]];
 // cores prontas da etiqueta (fundo, texto)
 const CORES = [["Preto", "#111111", "#FFFFFF"], ["Laranja", "#D63803", "#FFFFFF"], ["Verde", "#0F7F3A", "#FFFFFF"], ["Vermelho", "#C8102E", "#FFFFFF"], ["Azul", "#1D4ED8", "#FFFFFF"], ["Rosa", "#DB2777", "#FFFFFF"], ["Roxo", "#7C3AED", "#FFFFFF"], ["Dourado", "#E8B53A", "#111111"], ["Branco", "#FFFFFF", "#111111"]];
 const HEX = /^#[0-9A-Fa-f]{6}$/;
@@ -142,7 +144,8 @@ function atual(p, l) {
     selos: l?.selos ?? (p.selos || []).filter((x) => SELOS.includes(x)),
     personalizavel: l?.personalizavel ?? p.personalizavel ?? "",
     ordem: l?.ordem ?? null,
-    etiqueta: l?.etiqueta ?? null
+    etiqueta: l?.etiqueta ?? null,
+    ficha: l?.ficha ?? p.ficha ?? {}
   };
 }
 function todasCategorias() {
@@ -187,7 +190,7 @@ async function renderPrecos() {
             <button class="btn btn--primary" type="submit">Salvar</button>
           </div>
           <details class="adm__more"${abertos.has(p.id) ? " open" : ""}>
-            <summary>Editar detalhes do produto <small>nome, descrição, categorias, selos, etiqueta, personalização e ordem</small></summary>
+            <summary>Editar detalhes do produto <small>nome, descrição, ficha técnica, categorias, selos, etiqueta, personalização e ordem</small></summary>
             <div class="adm__det">
               <label class="adm__wide">Nome do produto<input name="nome" maxlength="80" required value="${esc(d.nome)}"></label>
               <label class="adm__wide">Descrição<textarea name="descricao" rows="3" maxlength="700">${esc(d.descricao)}</textarea><small class="adm__count" data-count>${d.descricao.length}/700</small></label>
@@ -200,6 +203,10 @@ async function renderPrecos() {
               </div></fieldset>
               <label>Ordem na vitrine<input name="ordem" type="number" min="1" max="999" inputmode="numeric" placeholder="automática" value="${d.ordem ?? ""}"><small>1 aparece primeiro</small></label>
               <label class="adm__wide">Campo de personalização<input name="personalizavel" maxlength="120" placeholder="Deixe vazio se a peça não é personalizável" value="${esc(d.personalizavel)}"><small>Texto que aparece acima do campo, ex.: “Nome que vai na peça”</small></label>
+              <fieldset class="adm__wide adm__ficha">
+                <legend>Ficha técnica <small>aparece na página do produto; deixe vazio o que não souber</small></legend>
+                <div class="adm__ficha-grid">${FICHA.map(([k, rot, ex]) => `<label>${rot}<input name="ficha_${k}" maxlength="120" placeholder="${esc(ex)}" value="${esc(d.ficha?.[k] || "")}"></label>`).join("")}</div>
+              </fieldset>
               <fieldset class="adm__wide adm__etq" data-etq>
                 <legend>Etiqueta no card <small>opcional, ex.: LANÇAMENTO, DIA DAS MÃES, ÚLTIMAS UNIDADES</small></legend>
                 <div class="adm__etq-grid">
@@ -227,6 +234,13 @@ async function renderPrecos() {
         </form>`;
       }).join("")}</div>`;
   } catch (e) { box.innerHTML = `<p class="adm__msg">Erro: ${esc(e.message)}. Rode o supabase/schema.sql atualizado no SQL Editor.</p>`; }
+}
+function lerFicha(f, p) {
+  const o = {};
+  FICHA.forEach(([k]) => { const v = (f["ficha_" + k]?.value || "").trim().replace(/\s+/g, " "); if (v) { if (/[<>]/.test(v)) throw new Error("Não use < ou > na ficha técnica."); o[k] = v; } });
+  const doArquivo = p.ficha || {};
+  const igual = FICHA.every(([k]) => (o[k] || "") === (doArquivo[k] || ""));
+  return igual ? null : Object.keys(o).length ? o : {};
 }
 function lerEtiqueta(f) {
   const texto = (f.etqtexto?.value || "").trim().replace(/\s+/g, " ");
@@ -281,8 +295,10 @@ async function salvarPreco(f) {
     selos: mesmaLista(selos, orig.selos) ? null : selos,
     personalizavel: personalizavel === orig.personalizavel ? null : personalizavel,
     ordem,
-    etiqueta: lerEtiqueta(f)
+    etiqueta: lerEtiqueta(f),
+    ficha: lerFicha(f, p)
   };
+  if (det.ficha == null && ![...ajustes.values()].some((x) => "ficha" in x)) delete det.ficha;   // banco ainda sem a coluna
   // variações: null = segue o produtos.json (só grava se mudou)
   const doArquivo = JSON.stringify(gruposDoArquivo(p, null).map((g, gi) => ({ nome: g.nome, ...(gi === 0 ? { precoPorOpcao: !!g.precoPorOpcao } : {}), opcoes: g.opcoes.map((o) => (g.precoPorOpcao ? { nome: o.nome, ...(o.valor != null ? { preco: o.valor } : {}) } : { nome: o.nome })) })));
   const variacoes = vars && JSON.stringify(vars.json) !== doArquivo ? vars.json : null;
@@ -772,6 +788,7 @@ app.addEventListener("submit", async (e) => {
 function erroProduto(msg) {
   if (/bucket not found|precos_fotos|column "?fotos|'fotos' column/i.test(msg)) return "O banco ainda não está pronto para fotos. Rode o arquivo supabase/fotos.sql no SQL Editor do Supabase (uma vez só).";
   if (/mime|file size|payload too large|exceeded/i.test(msg)) return "Arquivo não aceito: a foto precisa ser JPG, PNG ou WebP.";
+  if (/ficha/i.test(msg)) return /constraint/i.test(msg) ? "Ficha técnica inválida: textos curtos, sem < ou >." : "O banco ainda não tem a ficha técnica. Rode o arquivo supabase/ficha.sql no SQL Editor do Supabase (uma vez só).";
   if (/variacoes/i.test(msg)) return /constraint/i.test(msg) ? "Variações inválidas: no máximo 4 características, sem < ou >." : "O banco ainda não tem as variações. Rode o arquivo supabase/variacoes.sql no SQL Editor do Supabase (uma vez só).";
   if (/column|schema cache/i.test(msg)) return "O banco ainda não tem os campos de detalhes. Rode o arquivo supabase/produtos-detalhes.sql no SQL Editor do Supabase (uma vez só).";
   if (/precos_etiqueta|etiqueta/i.test(msg) && /column|schema cache|constraint/i.test(msg)) return /constraint/i.test(msg) ? "Etiqueta inválida: use até 24 letras." : "O banco ainda não tem a etiqueta. Rode o arquivo supabase/etiqueta.sql no SQL Editor do Supabase (uma vez só).";
@@ -835,7 +852,7 @@ app.addEventListener("click", async (e) => {
   if (rest) {
     if (!confirm("Voltar nome, descrição, categorias, selos, personalização, ordem e etiqueta para os dados originais do arquivo? Os preços e as fotos não mudam.")) return;
     try {
-      ok(await sb.from("precos").update({ nome: null, descricao: null, categorias: null, selos: null, personalizavel: null, ordem: null, ...([...ajustes.values()].some((x) => "etiqueta" in x) ? { etiqueta: null } : {}) }).eq("produto_id", rest.dataset.restaurar));
+      ok(await sb.from("precos").update({ nome: null, descricao: null, categorias: null, selos: null, personalizavel: null, ordem: null, ...([...ajustes.values()].some((x) => "etiqueta" in x) ? { etiqueta: null } : {}), ...([...ajustes.values()].some((x) => "ficha" in x) ? { ficha: null } : {}) }).eq("produto_id", rest.dataset.restaurar));
       abertos.add(rest.dataset.restaurar);
       aviso("Detalhes restaurados.");
       renderPrecos();
