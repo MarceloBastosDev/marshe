@@ -57,6 +57,6 @@ window.MARSHE = {
   supabaseAnonKey: "sb_publishable_5ofqkTbPNRCMy8Zlagfv2Q_PEeTHXS9", // chave "publishable" (sb_publishable_...) ou "anon public" do projeto (pode ficar no site)
   loginGoogle: true,      // true depois de ativar o Google no Supabase (passo a passo em supabase/LEIA-ME.md)
   cashbackPct: 5,         // % de volta em pontos (mude também em regras_pontos no Supabase)
-  validadePontosMeses: 3, // validade dos pontos (idem)
+  validadePontosMeses: 6, // validade dos pontos (idem)
   pontosDemo: false       // true = mostra as telas em modo demonstração, sem banco
 };

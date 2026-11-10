@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/produto.js": { "includeFiles": "{index.html,produtos.json,js/config.js}" },
+    "api/sitemap.js": { "includeFiles": "{produtos.json,js/config.js}" }
+  },
+  "rewrites": [
+    { "source": "/produto/:id", "destination": "/api/produto?id=:id" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+  ]
+}

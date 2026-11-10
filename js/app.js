@@ -197,6 +197,139 @@
     const linhas = FICHA_ROT.filter(([k]) => typeof p.ficha?.[k] === "string" && p.ficha[k].trim());
     return linhas.length ? `<dl class="pm__ficha">${linhas.map(([k, r]) => `<div><dt>${r}</dt><dd>${esc(p.ficha[k].slice(0, 120))}</dd></div>`).join("")}</dl>` : "";
   };
+  // Avaliações aprovadas (supabase/avaliacoes.sql): produto -> { lista, media, total }
+  let AVAL = new Map();
+  const ESTRELA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg>';
+  const estrelasHtml = (n) => `<span class="est" style="--n:${(Math.round(n * 2) / 2) * 20}%">${ESTRELA.repeat(5)}<span class="est__on">${ESTRELA.repeat(5)}</span></span>`;
+  const notaHtml = (id) => {
+    const a = AVAL.get(id);
+    return a ? `<span class="nota" aria-label="Nota ${a.media.toFixed(1)} de 5, ${a.total} ${a.total === 1 ? "avaliação" : "avaliações"}">${estrelasHtml(a.media)}<b>${a.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</b><small>(${a.total})</small></span>` : "";
+  };
+  function carregarAvaliacoes() {
+    if (!CFG.supabaseUrl || !CFG.supabaseAnonKey) return Promise.resolve(false);
+    return fetch(`${CFG.supabaseUrl}/rest/v1/rpc/avaliacoes_publicas`, { method: "POST", headers: { apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}`, "Content-Type": "application/json" }, body: "{}" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((lista) => {
+        const m = new Map();
+        (Array.isArray(lista) ? lista : []).forEach((a) => {
+          if (!m.has(a.produto_id)) m.set(a.produto_id, { lista: [], soma: 0 });
+          const x = m.get(a.produto_id); x.lista.push(a); x.soma += a.nota;
+        });
+        m.forEach((x) => { x.total = x.lista.length; x.media = x.soma / x.total; });
+        AVAL = m;
+        return m.size > 0;
+      })
+      .catch(() => false);
+  }
+  const BONUS_FOTO = (CFG.bonusAvaliacaoFoto ?? 300) / 100, BONUS_TEXTO = (CFG.bonusAvaliacaoTexto ?? 100) / 100;
+  function avaliacoesHtml(p) {
+    const a = AVAL.get(p.id);
+    const item = (x) => `<article class="aval">
+      <header><b>${esc(x.nome || "Cliente")}</b>${estrelasHtml(x.nota)}<time>${new Date(x.criado_em).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</time></header>
+      ${x.texto ? `<p>${esc(x.texto)}</p>` : ""}
+      ${x.foto ? `<a class="aval__foto" href="${esc(x.foto)}" target="_blank" rel="noopener"><img src="${esc(x.foto)}" alt="Foto enviada por ${esc(x.nome || "cliente")}" loading="lazy"></a>` : ""}
+    </article>`;
+    return `<section class="pm__aval" data-aval="${esc(p.id)}" id="avaliacoes">
+      <div class="pm__aval-head"><h3>Avaliações</h3>${a ? notaHtml(p.id) : ""}</div>
+      ${a ? `<div class="aval-lista">${a.lista.slice(0, 4).map(item).join("")}</div>${a.total > 4 ? `<details class="aval-mais"><summary>Ver todas as ${a.total} avaliações</summary><div class="aval-lista">${a.lista.slice(4).map(item).join("")}</div></details>` : ""}`
+        : `<p class="aval-vazio">Ainda sem avaliações. Comprou esta peça? Seja a primeira pessoa a avaliar!</p>`}
+      <div class="aval-cta"><button type="button" class="btn btn--ghost" data-avaliar-abrir>★ Avaliar este produto</button><small>Ganhe ${brl(BONUS_FOTO)} em pontos avaliando com foto (${brl(BONUS_TEXTO)} só com texto).</small></div>
+      <div data-aval-form hidden></div>
+    </section>`;
+  }
+  // reduz a foto no próprio celular antes de enviar (lado maior até 1280 px)
+  async function fotoReduzida(arq) {
+    const img = await (window.createImageBitmap ? createImageBitmap(arq, { imageOrientation: "from-image" }) : new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = URL.createObjectURL(arq); }));
+    const w0 = img.width || img.naturalWidth, h0 = img.height || img.naturalHeight, k = Math.min(1, 1280 / Math.max(w0, h0));
+    const c = document.createElement("canvas"); c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    let b = await new Promise((r) => c.toBlob(r, "image/webp", 0.82));
+    if (!b || b.type !== "image/webp") b = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
+    return b;
+  }
+  function abrirFormAvaliacao(id) {
+    const sec = document.querySelector(`[data-aval="${CSS.escape(id)}"]`);
+    if (!sec) return;
+    const c = conta();
+    if (!c?.user || !c.perfil?.aceite_em) {
+      toast("Entre na sua conta para avaliar e ganhar pontos", c ? "Entrar" : undefined, c ? () => c.abrir() : undefined);
+      c?.abrir();
+      return;
+    }
+    const box = sec.querySelector("[data-aval-form]");
+    box.hidden = false;
+    box.innerHTML = `<form class="aval-form" data-aval-enviar novalidate>
+      <fieldset class="aval-form__est"><legend>Sua nota</legend><div class="aval-form__stars">${[5, 4, 3, 2, 1].map((n) => `<input type="radio" name="nota" value="${n}" id="nota-${n}"><label for="nota-${n}" title="${n} ${n === 1 ? "estrela" : "estrelas"}">${ESTRELA}<span class="sr">${n} ${n === 1 ? "estrela" : "estrelas"}</span></label>`).join("")}</div></fieldset>
+      <label class="aval-form__txt">Conte como foi (opcional)<textarea name="texto" maxlength="600" rows="3" placeholder="Ex.: chegou rapidinho, a pintura ficou perfeita!"></textarea></label>
+      <label class="aval-form__foto"><input type="file" name="foto" accept="image/*"><span data-foto-txt>📷 Adicionar foto da peça</span><img alt="" hidden></label>
+      <p class="aval-form__dica">Com foto você ganha <strong>${brl(BONUS_FOTO)}</strong> em pontos; só com texto, ${brl(BONUS_TEXTO)}. Os pontos entram quando a loja aprovar a avaliação.</p>
+      <button class="btn btn--primary" type="submit">Enviar avaliação</button>
+      <p class="aval-form__msg" role="alert"></p>
+    </form>`;
+    const f = box.querySelector("form");
+    f.foto.addEventListener("change", () => {
+      const arq = f.foto.files[0], img = f.querySelector(".aval-form__foto img");
+      if (!arq) { img.hidden = true; return; }
+      img.src = URL.createObjectURL(arq); img.hidden = false;
+      f.querySelector("[data-foto-txt]").textContent = "Trocar foto";
+    });
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = f.querySelector(".aval-form__msg"), btn = f.querySelector("[type=submit]");
+      const nota = +(f.nota.value || 0);
+      if (!nota) { msg.textContent = "Escolha de 1 a 5 estrelas."; return; }
+      btn.disabled = true; btn.textContent = "Enviando…"; msg.textContent = "";
+      try {
+        const foto = f.foto.files[0] ? await fotoReduzida(f.foto.files[0]) : null;
+        await c.enviarAvaliacao({ produto: id, nota, texto: f.texto.value.trim().slice(0, 600), foto });
+        box.innerHTML = `<p class="aval-ok">Obrigado pela avaliação! 💛 Ela aparece aqui depois que a loja aprovar, e os pontos (${brl(foto ? BONUS_FOTO : BONUS_TEXTO)}) entram na sua conta.</p>`;
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "Enviar avaliação";
+        msg.textContent = /já avaliou/i.test(err.message) ? "Você já avaliou este produto. Obrigado!" : /mime|size|large/i.test(err.message) ? "Não deu para enviar esta foto. Tente outra imagem." : err.message || "Não deu para enviar agora. Tente de novo.";
+      }
+    });
+    box.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  }
+
+  /* ===== Compartilhar (com o link de indicação de quem tem conta) ===== */
+  const ICO_SHARE = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+  const BONUS_IND = (CFG.bonusIndicacao ?? 1000) / 100;
+  async function compartilhar(p) {
+    const c = conta();
+    const cod = await (c?.codigoIndicacao?.() || Promise.resolve(null)).catch(() => null);
+    const url = `${location.origin}/${p ? "produto/" + p.id : ""}${cod ? "?indica=" + cod : ""}`;
+    const texto = p ? `Olha que lindo: ${p.nome}, da Marshê Studio 3D 😍` : "Conheça a Marshê Studio 3D: peças em impressão 3D feitas em Terra de Areia/RS 😍";
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      try { await navigator.share({ title: p ? p.nome : "Marshê Studio 3D", text: texto, url }); return; }
+      catch (e) { if (e?.name === "AbortError") return; }
+    }
+    const el = document.createElement("div");
+    el.className = "passo";
+    el.innerHTML = `<div class="passo__card share" role="dialog" aria-modal="true" aria-labelledby="share-t" tabindex="-1">
+      <button type="button" class="passo__x" data-share-fechar aria-label="Fechar">&times;</button>
+      <p class="passo__eyebrow">Compartilhar</p>
+      <h2 id="share-t">${p ? esc(p.nome) : "Indique a Marshê"}</h2>
+      <p class="share__ind">${cod ? `🎁 Este é o <strong>seu link de indicação</strong>: quem fizer a primeira compra por ele ganha ${brl(BONUS_IND)} em pontos, e você também.` : `🎁 Tem conta? <button type="button" class="link-btn" data-share-conta>Entre</button> e o link vira seu link de indicação: ${brl(BONUS_IND)} para você e ${brl(BONUS_IND)} para o amigo.`}</p>
+      <a class="btn btn--wa btn--lg" href="https://wa.me/?text=${encodeURIComponent(texto + " " + url)}" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Mandar no WhatsApp</a>
+      <div class="share__link"><input readonly value="${esc(url)}" aria-label="Link"><button type="button" class="btn btn--ghost" data-share-copiar>Copiar</button></div>
+    </div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("is-on"));
+    el.querySelector(".passo__card").focus();
+    const fechar = () => { el.classList.remove("is-on"); setTimeout(() => el.remove(), 220); };
+    el.addEventListener("click", async (e) => {
+      if (e.target === el || e.target.closest("[data-share-fechar]")) return fechar();
+      if (e.target.closest("[data-share-conta]")) { fechar(); c?.abrir(); return; }
+      const b = e.target.closest("[data-share-copiar]");
+      if (b) {
+        const inp = el.querySelector(".share__link input");
+        try { await navigator.clipboard.writeText(url); } catch { inp.select(); document.execCommand("copy"); }
+        b.textContent = "Copiado ✓"; setTimeout(() => (b.textContent = "Copiar"), 2000);
+      }
+    });
+    el.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
+  }
+
   const needsChoice = (p) => consulta(p) || grupos(p).length > 0 || !!p.personalizavel;
 
   const etqStyle = (e) => `background:${e.fundo};color:${e.cor}`;
@@ -407,7 +540,8 @@
       </div>
       <div class="card__body">
         ${p.itensKit?.length ? `<span class="card__kit">Kit</span>` : ""}
-        <h3 class="card__title"><a href="#produto/${esc(p.id)}">${esc(p.nome)}</a></h3>
+        <h3 class="card__title"><a href="/produto/${esc(p.id)}">${esc(p.nome)}</a></h3>
+        ${notaHtml(p.id)}
         ${consulta(p) ? `<div class="card__prices"><span class="card__old card__old--empty" aria-hidden="true">&nbsp;</span><span class="card__price card__price--quote">Sob consulta</span><span class="card__first">Orçamento rápido no WhatsApp</span></div>
         <span class="card__qtd"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg>Desconto em quantidade</span>
         <button type="button" class="card__buy" data-add="${esc(p.id)}" aria-label="Pedir orçamento: ${esc(p.nome)}">Pedir orçamento</button>` : `<div class="card__prices">
@@ -525,7 +659,7 @@
     clearTimeout(buscaT);
     if (q.length >= 2) buscaT = setTimeout(() => { if (q !== ultimaBusca) { ultimaBusca = q; rastro("busca", { dados: { termo: state.q.trim().slice(0, 60), resultados: list.length } }); } }, 1500);
     results.innerHTML = list.length
-      ? list.slice(0, 5).map((p) => `<a class="sr-item" href="#produto/${esc(p.id)}" role="option">
+      ? list.slice(0, 5).map((p) => `<a class="sr-item" href="/produto/${esc(p.id)}" role="option">
           <span class="sr-item__img">${p.fotos[0] ? imgTag(p.fotos[0], "", { sizes: "48px", eager: true }) : placeholder("")}</span>
           <span class="sr-item__txt"><strong>${esc(p.nome)}</strong><small>${esc(p.categorias[0])}</small></span>
           <span class="sr-item__price">${precoTxt(p)}</span></a>`).join("")
@@ -679,7 +813,21 @@
       ${c.saldo > 0 ? `<label class="check check--pts"><input type="checkbox" data-usar-pontos ${marcado ? "checked" : ""}> <span>Usar meus pontos: <strong>${c.saldo.toLocaleString("pt-BR")}</strong> disponíveis (até ${brl(c.saldo / 100)})</span></label>` : ""}`;
   }
 
+  // 10% no 1º pedido: aplicado sozinho para quem tem conta e ainda não fez pedido; quem não tem conta é convidado a criar
+  function syncPrimeiro() {
+    const cb = $("[data-checkout] [name=primeiro]");
+    if (!cb) return;
+    const lbl = cb.closest("[data-primeiro]"), conv = $("[data-primeiro-conta]");
+    if (!PONTOS_ON) return;   // sem contas no site: segue a caixinha antiga
+    const c = conta();
+    const logado = !!(c?.user && c.perfil?.aceite_em);
+    const vale = logado && c.primeiraCompra === true;
+    cb.checked = vale; cb.disabled = true;
+    if (lbl) { lbl.hidden = !vale; lbl.querySelector("[data-primeiro-txt]").innerHTML = `Seu primeiro pedido: <strong>${CFG.descontoPrimeiroPedido || 10}% off aplicado ✓</strong>`; }
+    if (conv) conv.hidden = logado;
+  }
   function renderCart() {
+    syncPrimeiro();
     if (!PRODUCTS.length) return; // a conta pode avisar antes de o catálogo carregar
     const count = cart.reduce((s, it) => s + it.qtd, 0);
     const badge = $("[data-cart-count]");
@@ -797,7 +945,7 @@
   </tbody></table><p class="frete-nota">O prazo de entrega começa a contar depois da produção (${esc(CFG.prazoPadrao || "")}).</p>`;
   ["nome", "cidade"].forEach((n) => { if (cliente[n]) checkout.elements[n].value = cliente[n]; });
   if (cliente.entrega) $$(`[name=entrega]`, checkout).forEach((r) => (r.checked = r.value === cliente.entrega));
-  if (cliente.primeiro !== undefined) checkout.elements.primeiro.checked = cliente.primeiro;
+  if (!PONTOS_ON && cliente.primeiro !== undefined) checkout.elements.primeiro.checked = cliente.primeiro;
   checkout.addEventListener("input", () => {
     store.set("marshe:cliente", {
       nome: checkout.elements.nome.value, cidade: checkout.elements.cidade.value,
@@ -944,7 +1092,14 @@
     el.querySelector("[data-passo-ir]").addEventListener("click", () => {
       const pago = !!el.querySelector("[data-pix-pago]")?.checked;
       enviarPedido(pago);
-      fechar();
+      // fica aberta com o agradecimento e o convite para indicar (a pessoa volta do WhatsApp e vê)
+      card.innerHTML = `<button type="button" class="passo__x" data-passo-fechar aria-label="Fechar">&times;</button>
+        <p class="passo__eyebrow">Pedido pronto 🎉</p>
+        <h2>Agora é só tocar em <span class="passo__enviar">Enviar <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5l.01 6.6L15 12 3.01 13.9z" fill="currentColor"/></svg></span> no WhatsApp</h2>
+        <p class="passo__txt">Assim que a mensagem chegar, confirmamos tudo com você por lá. Obrigado por comprar com a Marshê! 💛</p>
+        <div class="passo__indica"><strong>Indique a Marshê e ganhe ${brl(BONUS_IND)}</strong><p>Quem fizer a primeira compra pelo seu link ganha ${brl(BONUS_IND)} em pontos, e você também.</p><button type="button" class="btn btn--primary" data-passo-indicar>${ICO_SHARE} Compartilhar a Marshê</button></div>
+        <button type="button" class="link-btn passo__voltar" data-passo-fechar>Fechar</button>`;
+      card.querySelector("[data-passo-indicar]").addEventListener("click", () => { fechar(); compartilhar(null); });
     });
     const pix = el.querySelector(".passo__pix");
     pix?.addEventListener("toggle", () => {
@@ -1043,9 +1198,12 @@
   const panel = $("[data-modal-panel]");
   let modalOpen = false, pushed = false, modalFocus = null;
 
+  // Cada produto tem endereço próprio: /produto/<id> (a Vercel monta a página com foto e preço, api/produto.js)
+  const PROD = /^\/produto\/([\w-]+)\/?$/;
+  const idDaUrl = () => (location.pathname.match(PROD) || location.hash.match(/^#produto\/([\w-]+)/) || [])[1] || null;
   function openProduct(id) {
-    if (location.hash !== `#produto/${id}`) { pushed = true; location.hash = `produto/${id}`; }
-    else showProduct(id);
+    if (location.pathname !== `/produto/${id}`) { history.pushState({ produto: id }, "", `/produto/${id}`); pushed = true; }
+    showProduct(id);
   }
 
   function showProduct(id) {
@@ -1075,6 +1233,7 @@
             <p class="pm__cat">${esc(p.categorias.join(" · "))}</p>
             <h2 class="pm__title" id="pm-title">${esc(p.nome)}</h2>
             <p class="pm__price" data-pprice>${priceHtml(p)}</p>
+            <div class="pm__social">${AVAL.get(p.id) ? `<a href="#avaliacoes" class="pm__nota" data-ir-aval>${notaHtml(p.id)}</a>` : ""}<button type="button" class="pm__share" data-compartilhar>${ICO_SHARE} Compartilhar</button></div>
             <p class="pm__desc">${esc(p.descricao)}</p>
             ${fichaHtml(p)}
             ${kitItens.length ? `<div class="pm__kit"><strong>Este kit tem ${kitItens.length} peças:</strong><ul>${kitItens.map((x) => `<li>${esc(x.nome)} <s>${brl(minPrice(x))}</s></li>`).join("")}</ul></div>` : ""}
@@ -1104,8 +1263,9 @@
             <button class="btn btn--primary btn--lg" type="button" data-padd><svg class="ico" aria-hidden="true"><use href="#i-cart"/></svg> Adicionar ao carrinho</button>
           </div>`}
         </div>
+        ${avaliacoesHtml(p)}
         ${related.length ? `<div class="pm__related"><h3>${combina.length ? "Combine com" : "Você também pode gostar"}</h3><div class="mini-grid">
-          ${related.map((r) => `<a class="mini" href="#produto/${esc(r.id)}" data-related><div class="mini__img">${r.fotos?.[0] ? imgTag(r.fotos[0], "", { sizes: "(max-width: 600px) 44vw, 220px" }) : placeholder("")}</div><div class="mini__name">${esc(r.nome)}</div><div class="mini__price">${priceHtml(r).replace(/<small>.*?<\/small>/, "a partir de ")}</div></a>`).join("")}
+          ${related.map((r) => `<a class="mini" href="/produto/${esc(r.id)}" data-related><div class="mini__img">${r.fotos?.[0] ? imgTag(r.fotos[0], "", { sizes: "(max-width: 600px) 44vw, 220px" }) : placeholder("")}</div><div class="mini__name">${esc(r.nome)}</div><div class="mini__price">${priceHtml(r).replace(/<small>.*?<\/small>/, "a partir de ")}</div></a>`).join("")}
         </div></div>` : ""}
       </div>`;
 
@@ -1215,7 +1375,7 @@
     if (!box) return;
     const lista = vistos.map(byId).filter(Boolean).slice(0, 6);
     box.hidden = !lista.length;
-    $("[data-recent-list]").innerHTML = lista.map((r) => `<a class="mini" href="#produto/${esc(r.id)}"><div class="mini__img">${r.fotos?.[0] ? imgTag(r.fotos[0], "", { sizes: "(max-width: 600px) 40vw, 180px" }) : placeholder("")}</div><div class="mini__name">${esc(r.nome)}</div><div class="mini__price">${precoTxt(r)}</div></a>`).join("");
+    $("[data-recent-list]").innerHTML = lista.map((r) => `<a class="mini" href="/produto/${esc(r.id)}"><div class="mini__img">${r.fotos?.[0] ? imgTag(r.fotos[0], "", { sizes: "(max-width: 600px) 40vw, 180px" }) : placeholder("")}</div><div class="mini__name">${esc(r.nome)}</div><div class="mini__price">${precoTxt(r)}</div></a>`).join("");
   }
 
   function hideModal() {
@@ -1231,9 +1391,9 @@
 
   function closeProduct(silent) {
     if (!modalOpen) return;
-    if (location.hash.startsWith("#produto/")) {
+    if (PROD.test(location.pathname) || location.hash.startsWith("#produto/")) {
       if (pushed) { pushed = false; history.back(); }
-      else history.replaceState(null, "", location.pathname + location.search);
+      else history.replaceState(null, "", "/" + location.search);
     }
     hideModal();
     if (silent) return;
@@ -1243,16 +1403,44 @@
     if (e.target === modal || e.target.closest("[data-mclose]")) closeProduct();
   });
   panel.addEventListener("click", (e) => {
+    if (e.target.closest("[data-compartilhar]")) { const id = panel.querySelector("[data-aval]")?.dataset.aval; compartilhar(byId(id)); return; }
+    if (e.target.closest("[data-avaliar-abrir]")) { abrirFormAvaliacao(e.target.closest("[data-aval]").dataset.aval); return; }
+    if (e.target.closest("[data-ir-aval]")) { e.preventDefault(); panel.querySelector("#avaliacoes")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" }); return; }
     const rel = e.target.closest("[data-related]");
-    if (rel) { e.preventDefault(); history.replaceState(null, "", rel.getAttribute("href")); showProduct(rel.getAttribute("href").split("/")[1]); }
+    if (rel) { e.preventDefault(); const rid = rel.getAttribute("href").split("/").pop(); history.replaceState({ produto: rid }, "", `/produto/${rid}`); showProduct(rid); }
   });
 
   function route() {
-    const m = location.hash.match(/^#produto\/([\w-]+)/);
-    if (m && byId(m[1])) showProduct(m[1]);
-    else if (modalOpen) { pushed = false; hideModal(); }
+    const id = idDaUrl();
+    // links antigos (#produto/x) passam para o endereço novo
+    if (id && location.hash.startsWith("#produto/")) history.replaceState({ produto: id }, "", `/produto/${id}`);
+    if (id && byId(id)) showProduct(id);
+    else {
+      if (id && PROD.test(location.pathname)) history.replaceState(null, "", "/");   // produto que não existe mais
+      if (modalOpen) { pushed = false; hideModal(); }
+    }
   }
   addEventListener("hashchange", route);
+  addEventListener("popstate", () => { pushed = false; route(); });
+  // cliques em links de produto abrem a janela sem recarregar a página
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest('a[href^="/produto/"]');
+    if (a && !a.hasAttribute("data-related")) {
+      const id = a.getAttribute("href").split("/").pop();
+      if (byId(id)) { e.preventDefault(); openProduct(id); }
+      return;
+    }
+    // numa página de produto, links da própria página (#catalogo, #duvidas...) voltam para a loja sem recarregar
+    const h = e.target.closest('a[href^="#"]');
+    if (h && h.getAttribute("href").length > 1 && PROD.test(location.pathname)) {
+      e.preventDefault();
+      if (modalOpen) hideModal();
+      pushed = false;
+      history.replaceState(null, "", "/" + h.getAttribute("href"));
+      document.querySelector(h.getAttribute("href"))?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+    }
+  });
 
   // Teclado: Esc fecha, Tab fica dentro da camada aberta
   document.addEventListener("keydown", (e) => {
@@ -1396,10 +1584,11 @@
   /* ==========================================================
      Início
      ========================================================== */
-  const TITLE = document.title;
+  // título da loja (na página de um produto o HTML já vem com o título do produto)
+  const TITLE = /^\/produto\//.test(location.pathname) ? "Marshê Studio 3D · Impressão 3D em Terra de Areia e Litoral Norte RS" : document.title;
 
   function productLd() {
-    const base = location.origin + location.pathname.replace(/index\.html$/, "");
+    const base = location.origin + "/";
     const ld = {
       "@context": "https://schema.org", "@type": "ItemList",
       itemListElement: PRODUCTS.map((p, i) => ({
@@ -1408,7 +1597,7 @@
           "@type": "Product", name: p.nome, description: p.descricao, category: p.categorias.join(", "),
           ...(p.fotos?.[0] ? { image: /^https?:/.test(p.fotos[0]) ? p.fotos[0] : base + p.fotos[0] } : {}),
           brand: { "@type": "Brand", name: "Marshê Studio 3D" },
-          offers: consulta(p) ? undefined : { "@type": "Offer", priceCurrency: "BRL", price: minPrice(p).toFixed(2), availability: "https://schema.org/MadeToOrder", url: `${base}#produto/${p.id}` }
+          offers: consulta(p) ? undefined : { "@type": "Offer", priceCurrency: "BRL", price: minPrice(p).toFixed(2), availability: "https://schema.org/MadeToOrder", url: `${base}produto/${p.id}` }
         }
       }))
     };
@@ -1473,11 +1662,13 @@
       });
       renderChips();
       update();
+      carregarAvaliacoes().then((tem) => { if (tem) { update(); if (modalOpen) { const id = panel.querySelector("[data-aval]")?.dataset.aval; if (id) showProduct(id); } } });
       renderRecent();
       if (conviteNovo && PONTOS_ON) setTimeout(() => toast(`🎁 Convite aceito! Crie sua conta e ganhe ${brl((CFG.bonusIndicacao ?? 1000) / 100)} em pontos na 1ª compra`, "Criar conta", () => conta()?.abrir()), 1200);
       renderCart();
       productLd();
       const d = byId(CFG.produtoDestaque);
+      if (d) $("[data-hero-chip]").setAttribute("href", `/produto/${d.id}`);
       if (d) $("[data-hero-chip]").innerHTML = `<span class="hero__chip-name">${esc(d.nome)}</span><span class="hero__chip-price">${priceHtml(d).replace(/<small>.*?<\/small>/, "a partir de ")}</span>`;
       route();
     })
@@ -1513,6 +1704,7 @@
     import(new URL("conta.js", SCRIPT_BASE).href)
       .then((m) => m.iniciar({
         lockScroll, openCart, toast,
+        avaliar: (id) => { if (!byId(id)) return; openProduct(id); setTimeout(() => abrirFormAvaliacao(id), 450); },
         // foto pequena do produto (para o histórico de pedidos)
         produto: (id) => { const p = byId(id); return p && { nome: p.nome, foto: p.fotos[0] ? small(p.fotos[0]) : "" }; },
         // "Comprar de novo": coloca no carrinho as peças que ainda existem, com as mesmas opções

@@ -42,6 +42,20 @@ async function backendSupabase() {
     async pedidos() { return ok(await sb.from("pedidos").select("id,criado_em,atualizado_em,status,itens,subtotal,desconto,total,pontos_usados,pontos_gerados,cidade,recebimento").order("criado_em", { ascending: false }).limit(20)); },
     async criarPedido(p) { return ok(await sb.from("pedidos").insert(p).select("id").single()).id; },
     async minhaIndicacao() { return ok(await sb.rpc("minha_indicacao"))?.[0] || null; },
+    // avaliação: foto (opcional) vai para a pasta do cliente em "avaliacoes"; o texto vai pela função do banco
+    async enviarAvaliacao({ produto, nota, texto, foto }) {
+      const uid = (await sb.auth.getSession()).data.session?.user?.id;
+      if (!uid) throw new Error("Entre na sua conta para avaliar");
+      let url = null;
+      if (foto) {
+        const ext = foto.type === "image/webp" ? "webp" : "jpg";
+        const caminho = `${uid}/${produto}-${Date.now()}.${ext}`;
+        ok(await sb.storage.from("avaliacoes").upload(caminho, foto, { contentType: foto.type, cacheControl: "31536000", upsert: false }));
+        url = sb.storage.from("avaliacoes").getPublicUrl(caminho).data.publicUrl;
+      }
+      return ok(await sb.rpc("enviar_avaliacao", { p_produto: produto, p_nota: nota, p_texto: texto || null, p_foto: url }));
+    },
+    async minhasAvaliacoes() { return ok(await sb.from("avaliacoes").select("produto_id,status,pontos")); },
     async registrarIndicacao(codigo) { return ok(await sb.rpc("registrar_indicacao", { p_codigo: codigo })); },
     // Quem é admin decide o banco (tabela "admins"); aqui só serve para mostrar o atalho
     async ehAdmin() { try { return !!ok(await sb.rpc("eh_admin")); } catch { return false; } }
@@ -79,6 +93,8 @@ function backendDemo() {
     async pedidos() { return get().pedidos; },
     async minhaIndicacao() { return { codigo: "DEMO25", indicados: 0, premiados: 0 }; },
     async registrarIndicacao() { return true; },
+    async enviarAvaliacao() { return "pendente"; },
+    async minhasAvaliacoes() { return []; },
     async ehAdmin() { return (get().user?.email || "").toLowerCase() === ADMIN_EMAIL; },
     async criarPedido(p) { const d = get(); d.seq++; d.pedidos.unshift({ ...p, id: d.seq, criado_em: new Date().toISOString(), status: "aguardando", pontos_gerados: 0 }); set(d); return d.seq; }
   };
@@ -90,7 +106,20 @@ export async function iniciar(loja) {
   try { api = CFG.pontosDemo ? backendDemo() : await backendSupabase(); }
   catch (e) { console.warn("Pontos Marshê indisponível:", e); return; }
 
-  const conta = window.MarsheConta = { ativo: true, demo: api.demo, user: null, perfil: null, saldo: 0, abrir, criarPedido: (p) => api.criarPedido(p) };
+  let codigoInd = null;
+  const conta = window.MarsheConta = {
+    ativo: true, demo: api.demo, user: null, perfil: null, saldo: 0, abrir,
+    primeiraCompra: null,   // true = ainda não fez pedido (o desconto de 1º pedido vale)
+    criarPedido: (p) => api.criarPedido(p).then((id) => { conta.primeiraCompra = false; avisar(); return id; }),
+    // código do Indique e ganhe (só com conta completa)
+    codigoIndicacao: async () => {
+      if (!conta.user || !conta.perfil?.aceite_em) return null;
+      if (!codigoInd) codigoInd = (await api.minhaIndicacao().catch(() => null))?.codigo || null;
+      return codigoInd;
+    },
+    enviarAvaliacao: (d) => api.enviarAvaliacao(d),
+    minhasAvaliacoes: () => (conta.user ? api.minhasAvaliacoes().catch(() => []) : Promise.resolve([]))
+  };
   const avisar = () => document.dispatchEvent(new CustomEvent("conta:mudou"));
 
   // Gaveta da conta
@@ -283,7 +312,7 @@ export async function iniciar(loja) {
         <ul class="order__items">${itens.map((i) => { const f = loja.produto?.(i.id)?.foto; return `<li>
           <span class="order__img">${f ? `<img src="${esc(f)}" alt="" loading="lazy">` : ""}</span>
           <span class="order__name">${esc(i.nome || i.id)}${i.variacao ? `<small>${esc(i.variacao)}</small>` : ""}${i.custom ? `<small>“${esc(i.custom)}”</small>` : ""}<small>${i.qtd}x ${brl(+i.preco)}</small></span>
-          <b>${brl(i.preco * i.qtd)}</b></li>`; }).join("")}</ul>
+          <b>${brl(i.preco * i.qtd)}</b>${p.status === "entregue" && loja.produto?.(i.id) ? `<button type="button" class="order__avaliar" data-avaliar="${esc(i.id)}">★ Avaliar e ganhar pontos</button>` : ""}</li>`; }).join("")}</ul>
         <dl class="order__sum">
           ${p.subtotal != null ? linha("Subtotal", brl(+p.subtotal)) : ""}
           ${+p.desconto ? linha("Desconto 1º pedido", "− " + brl(+p.desconto), "is-minus") : ""}
@@ -296,7 +325,7 @@ export async function iniciar(loja) {
         ${p.recebimento || p.cidade ? `<p class="order__note">${esc(p.recebimento || "")}${p.cidade ? " · " + esc(p.cidade) : ""}</p>` : ""}
         <div class="order__actions">
           ${itens.length ? `<button class="btn btn--primary" type="button" data-recomprar="${p.id}">Comprar de novo</button>` : ""}
-          <a class="btn btn--ghost" href="https://wa.me/${String(CFG.whatsapp || "").replace(/D/g, "")}?text=${encodeURIComponent(`Olá, Marshê! Quero falar sobre o pedido M${p.id}.`)}" target="_blank" rel="noopener">Falar sobre este pedido</a>
+          <a class="btn btn--ghost" href="https://wa.me/${String(CFG.whatsapp || "").replace(/\D/g, "")}?text=${encodeURIComponent(`Olá, Marshê! Quero falar sobre o pedido M${p.id}.`)}" target="_blank" rel="noopener">Falar sobre este pedido</a>
         </div>
       </div>
     </details>`;
@@ -309,7 +338,7 @@ export async function iniciar(loja) {
     let ind = null;
     try { ind = await api.minhaIndicacao(); } catch { /* sem indicação agora */ }
     if (!ind?.codigo) { box.remove(); return; }
-    const link = `${location.origin}${location.pathname}?indica=${ind.codigo}`;
+    const link = `${location.origin}/?indica=${ind.codigo}`;
     const texto = `Conhece a Marshê Studio 3D? Peças em impressão 3D lindas, feitas em Terra de Areia. Entra pelo meu link e ganha ${brl(BONUS / 100)} em pontos na sua primeira compra: ${link}`;
     box.innerHTML = `<strong>Indique e ganhe ${brl(BONUS / 100)}</strong>
       <p>Envie seu link. Quando a primeira compra do seu amigo for entregue, <strong>vocês dois</strong> ganham ${BONUS.toLocaleString("pt-BR")} pontos (${brl(BONUS / 100)}).</p>
@@ -391,6 +420,8 @@ export async function iniciar(loja) {
     }
     if (e.target.closest("[data-acct-logout]")) { await api.sair(); conta.user = null; conta.perfil = null; conta.saldo = 0; etapa = "entrar"; render(); avisar(); }
     if (e.target.closest("[data-acct-shop]")) { fechar(); loja.openCart(); }
+    const av = e.target.closest("[data-avaliar]");
+    if (av) { fechar(); setTimeout(() => loja.avaliar?.(av.dataset.avaliar), 280); }
     const rc = e.target.closest("[data-recomprar]");
     if (rc) {
       const p = ultimosPedidos.find((x) => String(x.id) === rc.dataset.recomprar);
@@ -406,6 +437,16 @@ export async function iniciar(loja) {
     }
   });
 
+  async function avisoVencer() {
+    try {
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem("marshe:aviso-vencer") === hoje) return;
+      const v = await api.aVencer();
+      if (!v?.quantidade) return;
+      localStorage.setItem("marshe:aviso-vencer", hoje);
+      setTimeout(() => loja.toast?.(`⏰ ${pts(v.quantidade)} (${brl(v.quantidade / 100)}) vencem em ${data(v.expira_em)}. Use no próximo pedido!`, "Ver carrinho", () => loja.openCart()), 1500);
+    } catch {}
+  }
   async function entrar(user) {
     // liga as visitas anteriores deste navegador à conta (painel: Desempenho)
     try { if (user && !sessionStorage.getItem("marshe:login")) { sessionStorage.setItem("marshe:login", "1"); setTimeout(() => window.MarsheRastro?.("login"), 800); } } catch {}
@@ -413,6 +454,13 @@ export async function iniciar(loja) {
     conta.perfil = user ? await api.perfil(user.id).catch(() => null) : null;
     await usarConvite();
     conta.saldo = user && conta.perfil?.aceite_em ? await api.saldo().catch(() => 0) : 0;
+    codigoInd = null;
+    conta.primeiraCompra = null;
+    if (user && conta.perfil?.aceite_em) {
+      const ped = await api.pedidos().catch(() => null);
+      conta.primeiraCompra = ped ? !ped.some((x) => x.status !== "cancelado") : null;
+      if (conta.saldo > 0) avisoVencer();
+    }
     if (etapa !== "nova-senha") etapa = "entrar";
     if (el.classList.contains("is-open")) render();
     avisar();

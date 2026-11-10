@@ -77,15 +77,49 @@ function render() {
       <button type="button" role="tab" aria-selected="${aba === "pedidos"}" data-aba="pedidos">Pedidos</button>
       <button type="button" role="tab" aria-selected="${aba === "clientes"}" data-aba="clientes">Clientes<span class="adm__tab-x"> e pontos</span></button>
       <button type="button" role="tab" aria-selected="${aba === "precos"}" data-aba="precos">Produtos<span class="adm__tab-x"> e preços</span></button>
+      <button type="button" role="tab" aria-selected="${aba === "avaliacoes"}" data-aba="avaliacoes">Avaliações</button>
       <button type="button" role="tab" aria-selected="${aba === "desempenho"}" data-aba="desempenho">Desempenho</button>
     </nav>
     <section data-conteudo><p>Carregando…</p></section>`;
-  aba === "pedidos" ? renderPedidos() : aba === "precos" ? renderPrecos() : aba === "desempenho" ? renderDesempenhoAba() : renderClientes();
+  aba === "pedidos" ? renderPedidos() : aba === "precos" ? renderPrecos() : aba === "desempenho" ? renderDesempenhoAba() : aba === "avaliacoes" ? renderAvaliacoes() : renderClientes();
 }
 
 async function renderDesempenhoAba() {
   const { renderDesempenho } = await import("./admin-desempenho.js");
   renderDesempenho($("[data-conteudo]"), { sb, ok, esc, brl, waLink });
+}
+
+/* ---------- Avaliações: aprovar (credita os pontos) ou recusar ---------- */
+let filtroAv = "pendente";
+const BONUS_AV = { foto: CFG.bonusAvaliacaoFoto ?? 300, texto: CFG.bonusAvaliacaoTexto ?? 100 };
+async function renderAvaliacoes() {
+  const box = $("[data-conteudo]");
+  box.innerHTML = "<p>Carregando…</p>";
+  try { if (!catalogo) catalogo = (await (await fetch("produtos.json", { cache: "no-cache" })).json()).produtos; } catch { catalogo = catalogo || []; }
+  let lista = [];
+  try { lista = ok(await sb.rpc("admin_avaliacoes", { p_status: filtroAv })); }
+  catch (e) {
+    box.innerHTML = /admin_avaliacoes|schema cache|function/i.test(e.message)
+      ? `<div class="adm__card"><h1>Falta um passo no Supabase</h1><p>Rode o arquivo <code>supabase/avaliacoes.sql</code> no SQL Editor do Supabase (uma vez só).</p></div>`
+      : `<p class="adm__msg">Erro: ${esc(e.message)}</p>`;
+    return;
+  }
+  const nomeProd = (id) => catalogo.find((p) => p.id === id)?.nome || id;
+  const filtros = [["pendente", "Para aprovar"], ["aprovada", "Aprovadas"], ["recusada", "Recusadas"]];
+  box.innerHTML = `<div class="adm__filters">${filtros.map(([v, l]) => `<button type="button" class="chip" aria-pressed="${filtroAv === v}" data-filtro-av="${v}">${l}</button>`).join("")}</div>
+    <p class="adm__hint-txt">Ao aprovar, a avaliação aparece na página do produto e o cliente ganha <strong>${brl(BONUS_AV.foto / 100)}</strong> em pontos (com foto) ou <strong>${brl(BONUS_AV.texto / 100)}</strong> (só texto).</p>
+    ${lista.length ? "" : `<p class="adm__empty">${filtroAv === "pendente" ? "Nenhuma avaliação esperando aprovação." : "Nenhuma avaliação aqui."}</p>`}
+    <div class="adm__list">${lista.map((a) => `<article class="adm__aval">
+      ${a.foto ? `<a class="adm__aval-foto" href="${esc(a.foto)}" target="_blank" rel="noopener"><img src="${esc(a.foto)}" alt="Foto da avaliação" loading="lazy"></a>` : `<span class="adm__aval-foto adm__aval-sem">sem foto</span>`}
+      <div class="adm__aval-txt">
+        <header><strong>${esc(nomeProd(a.produto_id))}</strong><span class="adm__aval-est" aria-label="${a.nota} de 5">${"★".repeat(a.nota)}<span>${"★".repeat(5 - a.nota)}</span></span><time>${dataHora(a.criado_em)}</time></header>
+        <p>${a.texto ? "“" + esc(a.texto) + "”" : '<span class="adm__aval-vazio">(sem texto)</span>'}</p>
+        <p class="adm__who">${esc(a.nome || a.email)}${a.whatsapp ? ` · <a href="${waLink(a.whatsapp, `Olá, ${(a.nome || "").split(" ")[0]}! Aqui é da Marshê Studio 3D. Obrigado pela avaliação! 💛`)}" target="_blank" rel="noopener">${esc(a.whatsapp)}</a>` : ""}</p>
+        ${a.status === "pendente" ? `<div class="adm__actions"><button class="btn btn--primary" data-aval-ok="${a.id}" data-produto="${esc(nomeProd(a.produto_id))}">Aprovar (+${brl((a.foto ? BONUS_AV.foto : BONUS_AV.texto) / 100)} em pontos)</button><button class="btn btn--ghost" data-aval-nao="${a.id}">Recusar</button></div>`
+          : a.status === "aprovada" ? `<p class="adm__aval-st">Aprovada · +${(a.pontos || 0).toLocaleString("pt-BR")} pontos para o cliente <button class="link-btn" data-aval-nao="${a.id}">Tirar da loja</button></p>`
+          : `<p class="adm__aval-st">Recusada <button class="link-btn" data-aval-ok="${a.id}" data-produto="${esc(nomeProd(a.produto_id))}">Aprovar mesmo assim</button></p>`}
+      </div>
+    </article>`).join("")}</div>`;
 }
 
 async function renderPedidos() {
@@ -836,6 +870,20 @@ app.addEventListener("change", (e) => {
 
 app.addEventListener("click", async (e) => {
   if (e.target.closest("[data-login-link]")) return telaLogin("link");
+  const fav = e.target.closest("[data-filtro-av]");
+  if (fav) { filtroAv = fav.dataset.filtroAv; renderAvaliacoes(); return; }
+  const avOk = e.target.closest("[data-aval-ok]"), avNao = e.target.closest("[data-aval-nao]");
+  if (avOk || avNao) {
+    const b = avOk || avNao;
+    if (avNao && !confirm("Recusar esta avaliação? Ela não aparece na loja.")) return;
+    b.disabled = true;
+    try {
+      const pontos = ok(await sb.rpc("moderar_avaliacao", { p_id: +(b.dataset.avalOk || b.dataset.avalNao), p_aprovar: !!avOk, p_produto_nome: b.dataset.produto || null }));
+      aviso(avOk ? `Avaliação aprovada${pontos ? ` · +${pontos} pontos para o cliente` : ""}.` : "Avaliação recusada.");
+      renderAvaliacoes();
+    } catch (err) { b.disabled = false; aviso(err.message); }
+    return;
+  }
   const va = e.target.closest("[data-va]");
   if (va) { acaoVariacao(va); return; }
   if (e.target.closest("[data-abrir-var]")) { const d = e.target.closest("form").querySelector(".adm__varbox"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); return; }

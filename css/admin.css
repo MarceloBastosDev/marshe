@@ -477,3 +477,20 @@ html.crop-aberto { overflow: hidden; }
 /* Ficha técnica no painel */
 .adm__ficha-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem .8rem; }
 .adm__ficha-grid label { display: grid; gap: .3rem; font-size: .76rem; font-weight: 600; color: var(--tinta); }
+
+/* Avaliações no painel */
+.adm__hint-txt { margin: 0 0 .8rem; font-size: .8rem; color: var(--tinta-suave); }
+.adm__aval { display: grid; grid-template-columns: 96px 1fr; gap: .9rem; padding: .9rem; border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.adm__aval-foto { display: block; width: 96px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #F3F1EF; }
+.adm__aval-foto img { width: 100%; height: 100%; object-fit: cover; }
+.adm__aval-sem { display: grid; place-items: center; font-size: .72rem; color: var(--tinta-suave); }
+.adm__aval-txt { display: grid; gap: .35rem; min-width: 0; font-size: .86rem; }
+.adm__aval-txt header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
+.adm__aval-txt p { margin: 0; }
+.adm__aval-txt time { margin-left: auto; font-size: .74rem; color: var(--tinta-suave); }
+.adm__aval-est { color: #E8A317; letter-spacing: .05em; }
+.adm__aval-est span { color: #DAD6D2; }
+.adm__aval-vazio { color: var(--tinta-suave); font-style: italic; }
+.adm__aval-st { font-size: .8rem; color: var(--tinta-suave); }
+.adm__aval .adm__actions .btn { min-height: 40px; }
+@media (max-width: 599px) { .adm__aval { grid-template-columns: 72px 1fr; } .adm__aval-foto { width: 72px; } .adm__tabs { justify-content: flex-start; } .adm__tabs button { flex: none; } }

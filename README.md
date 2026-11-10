@@ -18,6 +18,8 @@ js/admin.js         painel da loja
 css/                estilos (cores da marca nas variáveis do topo de style.css)
 assets/             logos, fontes, imagens e fotos dos produtos (WebP 480/960)
 supabase/           SQL do banco e passo a passo (LEIA-ME.md)
+api/                funções da Vercel: página de cada produto (/produto/<id>), sitemap.xml e região aproximada
+vercel.json         liga /produto/<id> e /sitemap.xml às funções de api/
 ```
 
 ## Como rodar
@@ -37,4 +39,5 @@ e abra http://localhost:8000 (abrir o `index.html` direto não carrega o `produt
 - **Novo produto ou novas fotos:** edite o `produtos.json` e coloque as fotos em
   `assets/produtos/` (versões `-480.webp` e `-960.webp`).
 - **Banco de dados (Supabase):** veja `supabase/LEIA-ME.md`.
+- **Endereço de cada produto:** www.marshe3d.com.br/produto/<id> (o id está no produtos.json). A página já sai com nome, foto e preço para o Google e para a prévia do WhatsApp.
 - **Publicação:** cada envio para a branch `main` publica sozinho na Vercel.

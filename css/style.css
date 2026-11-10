@@ -1858,3 +1858,94 @@ label { font-size: .8rem; font-weight: 500; }
 @media (max-width: 420px) { .passo__pix-in { grid-template-columns: 1fr; justify-items: center; } .passo__qr { width: 180px; } .passo__pix-dados { justify-items: stretch; text-align: center; } }
 @media (min-width: 600px) { .passo { place-items: center; } .passo__card { border-radius: 22px; transform: translateY(24px) scale(.98); opacity: 0; transition: transform .25s, opacity .2s; } .passo.is-on .passo__card { transform: none; opacity: 1; } }
 .passo__pago { text-align: left; justify-content: flex-start; }
+
+/* ==========================================================
+   Avaliações, compartilhar e desconto do 1º pedido
+   ========================================================== */
+/* estrelas: 5 cinzas com as douradas por cima, cortadas na porcentagem da nota */
+.est { position: relative; display: inline-flex; flex: none; color: #DAD6D2; line-height: 0; }
+.est svg { width: 14px; height: 14px; fill: currentColor; }
+.est__on { position: absolute; inset: 0 auto 0 0; display: inline-flex; width: var(--n, 0%); overflow: hidden; color: #E8A317; }
+.est__on svg { flex: none; }
+.nota { display: inline-flex; align-items: center; gap: .3rem; font-size: .76rem; color: var(--tinta); }
+.nota b { font-weight: 700; }
+.nota small { color: var(--tinta-suave); }
+.shop .card .nota { margin: -.15rem 0 .3rem; }
+.shop .card .nota .est svg { width: 12px; height: 12px; }
+
+/* janela do produto: nota + compartilhar */
+.pm__social { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: -.2rem 0 .9rem; }
+.pm__nota { text-decoration: none; }
+.pm__nota:hover .nota small { text-decoration: underline; }
+.pm__share { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; padding: .3rem .85rem; border: 1px solid var(--linha); border-radius: 999px; background: #fff; color: var(--tinta); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; transition: border-color .15s, color .15s; }
+.pm__share:hover { border-color: var(--laranja); color: var(--laranja-escuro); }
+.pm__share .ico { width: 16px; height: 16px; }
+
+/* seção de avaliações */
+.pm__aval { padding: 1.5rem 1.25rem; border-top: 1px solid var(--linha); }
+.pm__aval-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem; margin-bottom: .9rem; }
+.pm__aval-head h3 { margin: 0; }
+.pm__aval-head .est svg { width: 17px; height: 17px; }
+.pm__aval-head .nota { font-size: .9rem; }
+.aval-lista { display: grid; gap: .7rem; }
+.aval { display: grid; gap: .4rem; padding: .85rem .95rem; border-radius: 12px; background: #FAFAF9; }
+.aval header { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; font-size: .85rem; }
+.aval time { margin-left: auto; font-size: .72rem; color: var(--tinta-suave); }
+.aval p { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--tinta); }
+.aval__foto { display: block; width: 120px; aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
+.aval__foto img { width: 100%; height: 100%; object-fit: cover; }
+.aval-mais { margin-top: .6rem; }
+.aval-mais > summary { cursor: pointer; font-size: .84rem; font-weight: 600; color: var(--laranja-escuro); }
+.aval-mais[open] > summary { margin-bottom: .6rem; }
+.aval-vazio { margin: 0 0 .8rem; font-size: .88rem; color: var(--tinta-suave); }
+.aval-cta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: 1rem; }
+.aval-cta .btn { min-height: 42px; font-size: .84rem; }
+.aval-cta small { font-size: .76rem; color: var(--tinta-suave); }
+
+/* formulário de avaliação */
+.aval-form { display: grid; gap: .8rem; margin-top: 1rem; padding: 1rem; border: 1px solid var(--linha); border-radius: 14px; background: #fff; }
+.aval-form__est { margin: 0; padding: 0; border: 0; }
+.aval-form__est legend { margin-bottom: .3rem; font-size: .84rem; font-weight: 600; }
+/* estrelas de 5 a 1 invertidas: passar o dedo/mouse acende as anteriores */
+.aval-form__stars { display: inline-flex; flex-direction: row-reverse; gap: .2rem; }
+.aval-form__stars input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.aval-form__stars label { display: grid; place-items: center; width: 44px; height: 44px; color: #DAD6D2; cursor: pointer; transition: transform .12s, color .12s; }
+.aval-form__stars label svg { width: 32px; height: 32px; fill: currentColor; }
+.aval-form__stars label:hover, .aval-form__stars label:hover ~ label, .aval-form__stars input:checked ~ label { color: #E8A317; }
+.aval-form__stars input:checked + label { transform: scale(1.08); }
+.aval-form__stars input:focus-visible + label { outline: 3px solid rgba(251, 68, 5, .35); border-radius: 8px; }
+.aval-form__txt { display: grid; gap: .3rem; font-size: .82rem; font-weight: 600; }
+.aval-form__txt textarea { padding: .6rem .75rem; border: 1px solid var(--linha); border-radius: 10px; font: inherit; font-size: .95rem; font-weight: 400; resize: vertical; }
+.aval-form__foto { position: relative; display: flex; align-items: center; gap: .8rem; min-height: 54px; padding: .5rem .8rem; border: 2px dashed #D6D3D1; border-radius: 12px; font-size: .86rem; font-weight: 600; color: var(--laranja-escuro); cursor: pointer; }
+.aval-form__foto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.aval-form__foto img { width: 56px; height: 56px; margin-left: auto; border-radius: 8px; object-fit: cover; }
+.aval-form__foto:focus-within { border-color: var(--laranja); }
+.aval-form__dica { margin: 0; font-size: .78rem; color: var(--tinta-suave); line-height: 1.45; }
+.aval-form__msg { margin: 0; min-height: 1em; font-size: .82rem; color: #B42318; }
+.aval-form__msg:empty { display: none; }
+.aval-ok { margin: 1rem 0 0; padding: .9rem 1rem; border-radius: 12px; background: #E7F4EC; font-size: .88rem; color: var(--tinta); }
+
+/* compartilhar */
+.share { gap: .9rem; }
+.share h2 { padding-right: 2rem; }
+.share__ind { margin: 0; padding: .7rem .85rem; border-radius: 12px; background: #FFF6F1; font-size: .84rem; line-height: 1.5; color: var(--tinta); }
+.share .btn--wa { width: 100%; min-height: 52px; }
+.share__link { display: grid; grid-template-columns: 1fr auto; gap: .5rem; }
+.share__link input { min-width: 0; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--linha); border-radius: 10px; background: #FAFAF9; font: inherit; font-size: .8rem; color: var(--tinta-suave); }
+.share__link .btn { min-height: 44px; }
+
+/* depois de enviar o pedido */
+.passo__indica { display: grid; gap: .4rem; padding: .9rem 1rem; border-radius: 14px; background: #FFF6F1; }
+.passo__indica strong { font-size: .95rem; }
+.passo__indica p { margin: 0; font-size: .82rem; color: var(--tinta-suave); }
+.passo__indica .btn { justify-self: start; margin-top: .3rem; min-height: 44px; }
+.passo__indica .ico { width: 16px; height: 16px; }
+
+/* convite para criar conta (10% no 1º pedido) */
+.primeiro-conta { margin: 0; padding: .7rem .85rem; border: 1px dashed var(--laranja); border-radius: 12px; background: #FFF8F4; font-size: .82rem; line-height: 1.5; color: var(--tinta); }
+.primeiro-conta .link-btn { margin-left: 0; font-size: .82rem; }
+@media (min-width: 900px) { .pm__aval { padding: 1.75rem 2.25rem 2rem; grid-column: 1 / -1; } }
+.order__avaliar { grid-column: 2 / -1; justify-self: start; margin-top: -.2rem; padding: .3rem .7rem; border: 1px solid #E8A317; border-radius: 999px; background: #FFF8E6; color: #8A5A00; font: inherit; font-size: .74rem; font-weight: 600; cursor: pointer; }
+.order__avaliar:hover { background: #FFEFC2; }
+/* sem conta: um convite só (10% no 1º pedido + pontos) */
+.checkout:has([data-primeiro-conta]:not([hidden])) [data-pontos] { display: none; }

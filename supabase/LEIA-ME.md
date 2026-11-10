@@ -5,7 +5,7 @@ O site continua estático. O login dos clientes e o saldo de pontos ficam no
 configurado, o programa fica escondido no site, e a loja funciona normalmente.
 
 **Regras atuais:** 5% do valor pago volta em pontos (1 ponto = R$ 0,01). Os
-pontos entram quando o pedido é marcado como **entregue**, valem **3 meses** e
+pontos entram quando o pedido é marcado como **entregue**, valem **6 meses** e
 são usados como desconto no próximo pedido.
 
 ---
@@ -155,6 +155,8 @@ Abra `https://www.marshe3d.com.br/admin.html` e entre com o e-mail da loja.
   peso e outras informações; aparece na página do produto só o que for preenchido.
   Antes de usar, rode **uma vez** `supabase/ficha.sql`.
 
+- **Avaliações** (aba Avaliações): o cliente avalia pelo site (estrelas, texto e foto). Ao **Aprovar**, a avaliação aparece no produto e o cliente ganha R$ 3 em pontos (com foto) ou R$ 1 (só texto). Antes de usar, rode **uma vez** `supabase/avaliacoes.sql` (também deixa os pontos valendo 6 meses e o desconto de 10% só para o primeiro pedido de verdade).
+
 - **Variações** (no mesmo cartão): até 4 características por produto
   (ex.: Tamanho, Cor, Acabamento), cada uma com suas opções. Na 1ª você pode
   marcar **Cada opção tem o seu próprio preço** (ex.: 4 cm R$ 20, 7 cm R$ 30);
@@ -185,7 +187,7 @@ Pontos vencidos deixam de contar sozinhos, sem precisar fazer nada.
 ## 3. Mudar as regras
 
 1. No SQL Editor:
-   `update public.regras_pontos set cashback_pct = 5, validade_meses = 3 where id = 1;`
+   `update public.regras_pontos set cashback_pct = 5, validade_meses = 6 where id = 1;`
 2. Em `js/config.js`: `cashbackPct` e `validadePontosMeses`.
 3. No `index.html`: os textos da seção "Pontos Marshê" (regulamento) e da
    pergunta do FAQ.
