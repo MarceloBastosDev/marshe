@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
   const preco = menorPreco(p);
   const titulo = `${p.nome} · Marshê Studio 3D`;
   const resumo = String(p.descricao || "").replace(/\s+/g, " ").trim();
-  const desc = (preco ? `${p.precoDe && p.precoDe > preco ? "Oferta: " : ""}${preco !== +p.preco || p.variacoes || p._variacoesPainel ? "a partir de " : ""}${brl(preco)}. ` : "Sob consulta. ") + (resumo.length > 140 ? resumo.slice(0, 137) + "…" : resumo) + " Impressão 3D em Terra de Areia/RS.";
+  const desc = (preco ? `${p.precoDe && p.precoDe > preco ? "Oferta: " : ""}${preco !== +p.preco || p.variacoes || p._variacoesPainel ? "a partir de " : ""}${brl(preco)}. ` : "Sob consulta. ") + (resumo.length > 140 ? resumo.slice(0, 137) + "…" : resumo) + " Feito à mão pela Marshê em Terra de Areia/RS.";
   const descM = desc.charAt(0).toUpperCase() + desc.slice(1);
   const foto = absoluta((p.fotos || [])[0]);
   const fotos = (p.fotos || []).slice(0, 6).map(absoluta);

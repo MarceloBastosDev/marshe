@@ -298,7 +298,7 @@
     const c = conta();
     const cod = await (c?.codigoIndicacao?.() || Promise.resolve(null)).catch(() => null);
     const url = `${location.origin}/${p ? "produto/" + p.id : ""}${cod ? "?indica=" + cod : ""}`;
-    const texto = p ? `Olha que lindo: ${p.nome}, da Marshê Studio 3D 😍` : "Conheça a Marshê Studio 3D: peças em impressão 3D feitas em Terra de Areia/RS 😍";
+    const texto = p ? `Olha que lindo: ${p.nome}, da Marshê Studio 3D 😍` : "Conheça a Marshê Studio 3D: imagens de fé e presentes com o seu nome, feitos à mão em Terra de Areia/RS 😍";
     if (navigator.share && matchMedia("(pointer: coarse)").matches) {
       try { await navigator.share({ title: p ? p.nome : "Marshê Studio 3D", text: texto, url }); return; }
       catch (e) { if (e?.name === "AbortError") return; }
@@ -346,7 +346,7 @@
      ordenação, busca e cards de loja
      ========================================================== */
   const grid = $("[data-grid]");
-  const state = { cats: new Set(), prices: new Set(), flags: new Set(), q: "", sort: "destaque" };
+  const state = { cats: new Set(), prices: new Set(), flags: new Set(), q: "", sort: "destaque", linha: "todos" };
   let favs = new Set(store.get("marshe:favs", []));
   const desconto = CFG.descontoPrimeiroPedido || 10;
 
@@ -365,13 +365,22 @@
     { id: "novo", label: "Novidades", test: (p) => p.selos.some((s) => /novo/i.test(s)) },
     { id: "fav", label: "Meus favoritos", test: (p) => favs.has(p.id) }
   ];
-  const allCats = () => [...new Set(PRODUCTS.flatMap((p) => p.categorias))]
+  // Linhas da marca: Fé = categoria "Religiosos"; Com o seu nome = "Personalizados".
+  // Peças de encomenda (exemplos) e sem linha não entram nas telas de linha.
+  const linhasDe = (p) => p.encomenda ? [] : [
+    ...(p.categorias.includes("Religiosos") ? ["fe"] : []),
+    ...(p.categorias.includes("Personalizados") ? ["nome"] : [])
+  ];
+  const naLinha = (p, l = state.linha) => { const ls = linhasDe(p); return l === "todos" ? ls.length > 0 : ls.includes(l); };
+  // a categoria que define a linha não aparece como filtro dentro dela
+  const allCats = () => [...new Set(PRODUCTS.filter((p) => naLinha(p)).flatMap((p) => p.categorias))].filter((c) => c !== { fe: "Religiosos", nome: "Personalizados" }[state.linha])
     .sort((a, b) => (CAT_ORDER.indexOf(a) + 1 || 99) - (CAT_ORDER.indexOf(b) + 1 || 99));
 
   const matchQ = (p, q) => norm([p.nome, p.descricao, ...p.categorias, ...p.selos].join(" ")).includes(q);
   // Cada grupo é "ou" por dentro e "e" entre grupos; skip ignora um grupo (para as contagens)
   function matches(p, skip) {
     const q = norm(state.q.trim());
+    if (!naLinha(p)) return false;
     if (q && !matchQ(p, q)) return false;
     if (skip !== "cats" && state.cats.size && !p.categorias.some((c) => state.cats.has(c))) return false;
     if (skip !== "prices" && state.prices.size && !PRICE_RANGES.some((r) => state.prices.has(r.id) && r.test(p))) return false;
@@ -393,9 +402,105 @@
     if (top > 140 || top < -catalog.offsetHeight + 300) catalog.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
   };
 
+  /* ---------- Telas do site (uma página só, com endereço próprio para cada tela) ----------
+     /            início da marca: linhas, destaques, como fazemos
+     /fe          linha Fé
+     /com-seu-nome  linha Com o seu nome
+     /loja        todos os produtos das linhas
+     /encomendas  peças criadas do zero e lembrancinhas em quantidade
+     O CSS mostra só as seções cujo data-views tem a tela atual (html[data-view]). */
+  const SITE_URL = "https://www.marshe3d.com.br";
+  const TITULO_INICIO = "Marshê Studio 3D · Imagens de fé e presentes com o seu nome, feitos à mão";
+  const DESC_INICIO = "Imagens de santos e Nossas Senhoras, e presentes com o seu nome, criados e finalizados à mão pela Marshê em Terra de Areia/RS. Encomendas e lembrancinhas para todo o Brasil.";
+  const TELAS = {
+    "/": { view: "home", title: TITULO_INICIO, desc: DESC_INICIO },
+    "/fe": { view: "linha", linha: "fe", kicker: "Linha", titulo: "Fé",
+      lead: "Santos, Nossas Senhoras e peças de devoção, pintados à mão um a um. Para o oratório, a estante ou para presentear.",
+      title: "Fé · Imagens de santos e Nossas Senhoras · Marshê Studio 3D",
+      desc: "Imagens de santos, Nossas Senhoras, kits e peças de devoção pintadas à mão pela Marshê em Terra de Areia/RS." },
+    "/com-seu-nome": { view: "linha", linha: "nome", kicker: "Linha", titulo: "Com o seu nome",
+      lead: "Presentes que só existem uma vez: chaveiros, letreiros, luminárias e lembranças com o nome, a foto ou o pet de quem vai receber.",
+      title: "Com o seu nome · Presentes personalizados · Marshê Studio 3D",
+      desc: "Chaveiros, letreiros, luminárias e lembranças com nome, foto ou pet, feitos à mão pela Marshê em Terra de Areia/RS." },
+    "/loja": { view: "linha", linha: "todos", kicker: "Loja", titulo: "Todos os produtos",
+      lead: "As peças das linhas Fé e Com o seu nome, num lugar só.",
+      title: "Todos os produtos · Marshê Studio 3D", desc: DESC_INICIO },
+    "/encomendas": { view: "encomendas",
+      title: "Encomendas e lembrancinhas · Marshê Studio 3D",
+      desc: "Peças criadas do zero a partir da sua ideia e lembrancinhas em quantidade para casamento, batizado, paróquia e empresa. Marshê, Terra de Areia/RS." }
+  };
+  const caminho = () => location.pathname.replace(/\/+$/, "") || "/";
+  let telaAtual = TELAS[caminho()] ? caminho() : "/";
+  const metaDesc = $('meta[name="description"]'), canonical = $('link[rel="canonical"]');
+  const tituloTela = () => (TELAS[telaAtual] || TELAS["/"]).title;
+  function aplicarTela(path) {
+    telaAtual = TELAS[path] ? path : "/";
+    const t = TELAS[telaAtual];
+    document.documentElement.setAttribute("data-view", t.view);
+    if (t.view === "linha") {
+      const mudou = state.linha !== t.linha;
+      state.linha = t.linha;
+      $("[data-linha-kicker]").textContent = t.kicker;
+      $("[data-linha-titulo]").textContent = t.titulo;
+      $("[data-linha-lead]").textContent = t.lead;
+      if (mudou) { state.cats.clear(); state.prices.clear(); state.flags.clear(); }
+      if (PRODUCTS.length) update();
+    }
+    syncCatbar();
+    if (!PROD.test(location.pathname)) metaTela();
+  }
+  function metaTela() {
+    const t = TELAS[telaAtual] || TELAS["/"];
+    document.title = t.title;
+    metaDesc?.setAttribute("content", t.desc);
+    canonical?.setAttribute("href", SITE_URL + telaAtual);
+  }
+  // tela onde fica uma seção (para links #algo vindos de outra tela)
+  function telaDoAlvo(el) {
+    const v = el.closest("[data-views]")?.dataset.views.split(/\s+/);
+    const atual = document.documentElement.getAttribute("data-view");
+    if (!v || v.includes(atual)) return PROD.test(location.pathname) ? telaAtual : caminho() in TELAS ? caminho() : telaAtual;
+    return v[0] === "home" ? "/" : v[0] === "encomendas" ? "/encomendas" : (TELAS[telaAtual].view === "linha" ? telaAtual : "/loja");
+  }
+  function rolar(hash, suave) {
+    const el = hash && hash.length > 1 && document.getElementById(decodeURIComponent(hash.slice(1)));
+    if (el) el.scrollIntoView({ behavior: suave && !reduceMotion ? "smooth" : "instant" });
+    else scrollTo({ top: 0, behavior: suave && !reduceMotion ? "smooth" : "instant" });
+  }
+  function irPara(path, hash = "", { rolarPara = true } = {}) {
+    const mesma = path === telaAtual && !PROD.test(location.pathname);
+    history[mesma ? "replaceState" : "pushState"](null, "", path + location.search + (hash || ""));
+    if (modalOpen) { pushed = false; hideModal(); }
+    aplicarTela(path);
+    if (rolarPara) rolar(hash, mesma);
+  }
+  // links internos (/fe, /encomendas#quantidade, #duvidas...) trocam de tela sem recarregar
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a[href]");
+    if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+    const href = a.getAttribute("href");
+    if (href === "#") return;
+    let path, hash = "";
+    if (href.startsWith("#")) {
+      const el = document.getElementById(decodeURIComponent(href.slice(1)));
+      if (!el) return;
+      path = telaDoAlvo(el); hash = href;
+    } else {
+      const u = new URL(href, location.href);
+      if (u.origin !== location.origin) return;
+      path = u.pathname.replace(/\/+$/, "") || "/";
+      if (!TELAS[path]) return;
+      hash = u.hash;
+    }
+    e.preventDefault();
+    irPara(path, hash);
+  });
+
   /* ---------- Barra de categorias do topo (atalho para os filtros) ---------- */
   function setCat(cat, { scroll = true } = {}) {
     // Atalhos (barra do topo, fita, rodapé) mostram só a categoria escolhida, sem filtros anteriores
+    if (telaAtual !== "/loja") irPara("/loja");
     state.cats.clear(); state.prices.clear(); state.flags.clear();
     if (cat === "Ofertas") { if (PRODUCTS.some(isOffer)) state.flags.add("ofertas"); }
     else if (cat !== "Todos") state.cats.add(cat);
@@ -403,25 +508,18 @@
     if (scroll) goToCatalog();
   }
   function syncCatbar() {
-    const onlyOffers = state.flags.has("ofertas") && !state.cats.size;
-    $$("[data-catbar] [data-cat]").forEach((b) => {
-      const c = b.dataset.cat;
-      const on = c === "Ofertas" ? onlyOffers
-        : c === "Todos" ? !state.cats.size && !state.flags.has("ofertas")
-        : state.cats.size === 1 && state.cats.has(c);
-      b.setAttribute("aria-pressed", on);
+    const onlyOffers = telaAtual === "/loja" && state.flags.has("ofertas") && !state.cats.size;
+    $$("[data-catbar] [data-nav]").forEach((a) => {
+      const on = a.dataset.nav === telaAtual && !onlyOffers;
+      on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current");
     });
+    $$('[data-catbar] [data-cat-link="Ofertas"]').forEach((a) => (onlyOffers ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   }
   function renderChips() {
-    const offers = PRODUCTS.filter(isOffer).length;
-    const chip = (cat, label, extra = "") => `<button type="button" class="chip${extra}" data-cat="${esc(cat)}" aria-pressed="false">${label}</button>`;
     const bar = $("[data-catbar]");
-    bar.innerHTML = (offers ? chip("Ofertas", "Ofertas Black Marshê", " chip--bf") : "") + chip("Todos", "Todos")
-      + allCats().map((c) => chip(c, esc(c))).join("")
-      + `<span class="catbar__sep" aria-hidden="true"></span>
-         <a class="catbar__link" href="#personalizados">Criar sob medida</a>
-         <a class="catbar__link" href="#quantidade">Lembrancinhas</a>`;
-    bar.addEventListener("click", (e) => { const b = e.target.closest("[data-cat]"); if (b) setCat(b.dataset.cat); });
+    // ofertas no fim da navegação, só enquanto houver peças em oferta
+    if (PRODUCTS.some(isOffer) && !$('[data-cat-link="Ofertas"]', bar))
+      bar.insertAdjacentHTML("beforeend", `<span class="catbar__sep" aria-hidden="true"></span><a class="chip chip--bf" href="/loja" data-cat-link="Ofertas">Ofertas Black Marshê</a>`);
     syncCatbar();
     setupCatArrows(bar);
   }
@@ -449,7 +547,7 @@
   // Rodapé: atalhos para destaques (Mais pedidos, Novidades) e para uma pergunta do FAQ
   document.addEventListener("click", (e) => {
     const f = e.target.closest("[data-flag-link]");
-    if (f) { e.preventDefault(); state.cats.clear(); state.prices.clear(); state.flags.clear(); state.flags.add(f.dataset.flagLink); update(); goToCatalog(); return; }
+    if (f) { e.preventDefault(); if (telaAtual !== "/loja") irPara("/loja"); state.cats.clear(); state.prices.clear(); state.flags.clear(); state.flags.add(f.dataset.flagLink); update(); goToCatalog(); return; }
     const q = e.target.closest("[data-faq]");
     if (q) {
       const d = $$("#duvidas details")[+q.dataset.faq];
@@ -513,6 +611,7 @@
   function update() {
     shown = PAGE;
     renderGrid();
+    renderVitrines();
     renderFilters();
     syncCatbar();
   }
@@ -528,7 +627,7 @@
     const etq = p.etiqueta;
     const seloEtq = etq?.estilo === "selo" ? `<span class="card__tag card__tag--etq" style="${etqStyle(etq)}">${esc(etq.texto)}</span>` : "";
     const tags = seloEtq && tag ? `<span class="card__tags">${seloEtq}${tag}</span>` : seloEtq || tag;
-    const faixa = etq?.estilo === "faixa" ? `<span class="card__band" style="${etqStyle(etq)}">${esc(etq.texto)}</span>` : isOffer(p) ? `<span class="card__band">Black Marshê</span>` : "";
+    const faixa = etq?.estilo === "faixa" ? `<span class="card__band" style="${etqStyle(etq)}">${esc(etq.texto)}</span>` : "";
     const fav = favs.has(p.id);
     const v = minPrice(p);
     return `<article class="card" style="--i:${i}" data-id="${esc(p.id)}">
@@ -542,14 +641,11 @@
         ${p.itensKit?.length ? `<span class="card__kit">Kit</span>` : ""}
         <h3 class="card__title"><a href="/produto/${esc(p.id)}">${esc(p.nome)}</a></h3>
         ${notaHtml(p.id)}
-        ${consulta(p) ? `<div class="card__prices"><span class="card__old card__old--empty" aria-hidden="true">&nbsp;</span><span class="card__price card__price--quote">Sob consulta</span><span class="card__first">Orçamento rápido no WhatsApp</span></div>
-        <span class="card__qtd"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg>Desconto em quantidade</span>
+        ${consulta(p) ? `<div class="card__prices"><span class="card__old card__old--empty" aria-hidden="true">&nbsp;</span><span class="card__price card__price--quote">Sob consulta</span></div>
         <button type="button" class="card__buy" data-add="${esc(p.id)}" aria-label="Pedir orçamento: ${esc(p.nome)}">Pedir orçamento</button>` : `<div class="card__prices">
           ${isOffer(p) ? `<s class="card__old">${brl(p.precoDe)}</s>` : hasRange(p) ? `<span class="card__from">A partir de:</span>` : `<span class="card__old card__old--empty" aria-hidden="true">&nbsp;</span>`}
           <span class="card__price">${brl(v)}</span>
-          <span class="card__first" title="${desconto}% de desconto no primeiro pedido">${firstOrder(v)} no 1º pedido</span>
         </div>
-        <span class="card__qtd"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg>Desconto em quantidade</span>
         <button type="button" class="card__buy" data-add="${esc(p.id)}" aria-label="Comprar ${esc(p.nome)}">Comprar</button>`}
       </div>
     </article>`;
@@ -583,6 +679,17 @@
     if (canHover && !reduceMotion) $$(".card", grid).forEach(tilt);
   }
 
+  // Vitrines fixas: destaques do início (poucas peças) e exemplos da tela de encomendas
+  const gridDestaques = $("[data-grid-destaques]"), gridEnc = $("[data-grid-enc]");
+  function renderVitrines() {
+    if (gridDestaques) {
+      const lista = PRODUCTS.filter((p) => naLinha(p, "todos") && p.fotos.length).sort(SORTS.destaque).slice(0, CFG.destaquesInicio || 4);
+      gridDestaques.innerHTML = lista.map(cardHtml).join("");
+    }
+    if (gridEnc) gridEnc.innerHTML = PRODUCTS.filter((p) => p.encomenda).sort(SORTS.destaque).map(cardHtml).join("");
+    if (canHover && !reduceMotion) [gridDestaques, gridEnc].forEach((g) => g && $$(".card", g).forEach(tilt));
+  }
+
   function tilt(card) {
     let raf = 0;
     card.addEventListener("pointermove", (e) => {
@@ -595,7 +702,7 @@
     card.addEventListener("pointerleave", () => { cancelAnimationFrame(raf); card.style.transform = ""; });
   }
 
-  grid.addEventListener("click", (e) => {
+  const cliqueCard = (e) => {
     const fav = e.target.closest("[data-fav]");
     if (fav) {
       e.preventDefault();
@@ -621,7 +728,8 @@
     add.textContent = "Adicionado ✓";
     clearTimeout(add._t);
     add._t = setTimeout(() => { add.classList.remove("is-done"); add.textContent = "Comprar"; }, 1600);
-  });
+  };
+  [grid, gridDestaques, gridEnc].forEach((g) => g && g.addEventListener("click", cliqueCard));
 
   /* ---------- Filtros no celular: gaveta ---------- */
   const fscrim = $("[data-fscrim]");
@@ -675,7 +783,7 @@
   searchInput.addEventListener("focus", () => state.q.trim() && renderResults());
   searchForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    state.q = searchInput.value; update(); showResults(false); searchInput.blur(); goToCatalog();
+    state.q = searchInput.value; if (telaAtual !== "/loja") irPara("/loja"); update(); showResults(false); searchInput.blur(); goToCatalog();
   });
   results.addEventListener("click", (e) => { if (e.target.closest(".sr-item, .sr-empty a")) showResults(false); });
   document.addEventListener("click", (e) => { if (!searchForm.contains(e.target)) showResults(false); });
@@ -1385,7 +1493,7 @@
     modal.classList.remove("is-open");
     setTimeout(() => { if (!modalOpen) { modal.hidden = true; panel.innerHTML = ""; } }, 260);
     if (!drawer.classList.contains("is-open")) lockScroll(false);
-    document.title = TITLE;
+    if (PROD.test(location.pathname)) document.title = tituloTela(); else metaTela();
     modalFocus?.focus?.({ preventScroll: true });
   }
 
@@ -1393,7 +1501,7 @@
     if (!modalOpen) return;
     if (PROD.test(location.pathname) || location.hash.startsWith("#produto/")) {
       if (pushed) { pushed = false; history.back(); }
-      else history.replaceState(null, "", "/" + location.search);
+      else history.replaceState(null, "", telaAtual + location.search);
     }
     hideModal();
     if (silent) return;
@@ -1414,12 +1522,18 @@
     const id = idDaUrl();
     // links antigos (#produto/x) passam para o endereço novo
     if (id && location.hash.startsWith("#produto/")) history.replaceState({ produto: id }, "", `/produto/${id}`);
-    if (id && byId(id)) showProduct(id);
-    else {
-      if (id && PROD.test(location.pathname)) history.replaceState(null, "", "/");   // produto que não existe mais
+    if (id && byId(id)) {
+      // aberto direto pelo endereço do produto: por baixo fica a linha da peça
+      if (!telaDaUrl) { const p = byId(id); const ls = linhasDe(p); aplicarTela(p.encomenda ? "/encomendas" : ls[0] === "fe" ? "/fe" : ls[0] === "nome" ? "/com-seu-nome" : "/loja"); telaDaUrl = true; }
+      showProduct(id);
+    } else {
+      if (id && PROD.test(location.pathname)) history.replaceState(null, "", telaAtual);   // produto que não existe mais
       if (modalOpen) { pushed = false; hideModal(); }
+      if (!PROD.test(location.pathname)) aplicarTela(caminho());
     }
+    syncCatbar();
   }
+  let telaDaUrl = !PROD.test(location.pathname);
   addEventListener("hashchange", route);
   addEventListener("popstate", () => { pushed = false; route(); });
   // cliques em links de produto abrem a janela sem recarregar a página
@@ -1430,15 +1544,6 @@
       const id = a.getAttribute("href").split("/").pop();
       if (byId(id)) { e.preventDefault(); openProduct(id); }
       return;
-    }
-    // numa página de produto, links da própria página (#catalogo, #duvidas...) voltam para a loja sem recarregar
-    const h = e.target.closest('a[href^="#"]');
-    if (h && h.getAttribute("href").length > 1 && PROD.test(location.pathname)) {
-      e.preventDefault();
-      if (modalOpen) hideModal();
-      pushed = false;
-      history.replaceState(null, "", "/" + h.getAttribute("href"));
-      document.querySelector(h.getAttribute("href"))?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
     }
   });
 
@@ -1584,8 +1689,7 @@
   /* ==========================================================
      Início
      ========================================================== */
-  // título da loja (na página de um produto o HTML já vem com o título do produto)
-  const TITLE = /^\/produto\//.test(location.pathname) ? "Marshê Studio 3D · Impressão 3D em Terra de Areia e Litoral Norte RS" : document.title;
+  aplicarTela(telaAtual);
 
   function productLd() {
     const base = location.origin + "/";
@@ -1650,7 +1754,7 @@
     })
     .then((data) => {
       (data.produtos || []).forEach((p) => { if (p && !p.grupos) p.grupos = gruposDoArquivo(p.variacoes); });
-      PRODUCTS = (data.produtos || []).filter((p) => p && p.id && p.nome && (p.sobConsulta || p.preco > 0 || opts(p).some((o) => o.preco > 0)));
+      PRODUCTS = (data.produtos || []).filter((p) => p && p.id && p.nome && !p.arquivado && (p.sobConsulta || p.preco > 0 || opts(p).some((o) => o.preco > 0)));
       PRODUCTS.forEach((p) => { p.categorias ||= ["Outros"]; p.fotos ||= []; p.selos ||= []; if (!(p.preco > 0) && !p.sobConsulta) p.preco = minPrice(p); });
       // Carrinhos salvos com nome antigo de opção (ex.: "7 cm · pintado à mão") passam para o nome atual ("7 cm")
       cart.forEach((it) => {

@@ -1,5 +1,5 @@
 {
-  "_como_usar": "Para adicionar uma peça, copie um bloco de produto, troque os dados e salve. 'id' sem espaços nem acentos. 'preco' em reais (use ponto: 12.5). 'fotos': caminhos em assets/produtos/ (WebP de preferência; se o nome terminar em -960.webp, o site procura também a versão -480.webp). Sem fotos, aparece uma arte provisória da marca. 'adicionado' (AAAA-MM-DD) é usado na ordenação por novidade. 'destaque' define a ordem padrão (menor = aparece antes). OFERTA (Black Friday): acrescente \"precoDe\" com o preço antigo, ex.: \"preco\": 30, \"precoDe\": 39. O site risca o preço antigo, mostra o selo -X% Black Friday e cria o filtro Ofertas no topo. KITS: \"itensKit\" lista os ids das peças do kit (aparece na página do produto); use \"precoDe\" com a soma das peças. COMBINE COM: \"combina\" lista ids de peças sugeridas no produto e no carrinho. SOB CONSULTA: produto sem preço usa \"sobConsulta\": true (botão Pedir orçamento no WhatsApp). Para vender direto, apague sobConsulta e coloque \"preco\".",
+  "_como_usar": "Para adicionar uma peça, copie um bloco de produto, troque os dados e salve. 'id' sem espaços nem acentos. 'preco' em reais (use ponto: 12.5). 'fotos': caminhos em assets/produtos/ (WebP de preferência; se o nome terminar em -960.webp, o site procura também a versão -480.webp). Sem fotos, aparece uma arte provisória da marca. 'adicionado' (AAAA-MM-DD) é usado na ordenação por novidade. 'destaque' define a ordem padrão (menor = aparece antes). OFERTA (Black Friday): acrescente \"precoDe\" com o preço antigo, ex.: \"preco\": 30, \"precoDe\": 39. O site risca o preço antigo, mostra o selo -X% Black Friday e cria o filtro Ofertas no topo. KITS: \"itensKit\" lista os ids das peças do kit (aparece na página do produto); use \"precoDe\" com a soma das peças. COMBINE COM: \"combina\" lista ids de peças sugeridas no produto e no carrinho. SOB CONSULTA: produto sem preço usa \"sobConsulta\": true (botão Pedir orçamento no WhatsApp). Para vender direto, apague sobConsulta e coloque \"preco\". LINHAS: a peça entra na linha Fé se tiver a categoria \"Religiosos\" e na linha Com o seu nome se tiver \"Personalizados\". ENCOMENDAS: \"encomenda\": true tira a peça das linhas e mostra como exemplo na página Encomendas. ARQUIVO: \"arquivado\": true tira a peça do site sem apagar (apague essa linha para ela voltar).",
   "produtos": [
     {
       "id": "jesusinho",
@@ -222,26 +222,6 @@
         "sao-miguel-arcanjo",
         "porta-terco-nossa-senhora",
         "kit-protecao"
-      ]
-    },
-    {
-      "id": "mascara-obito",
-      "nome": "Máscara do Obito",
-      "descricao": "Máscara em tamanho real, impressa em 3D e lixada, com acabamento rústico. Vem com alça ajustável para usar no cosplay ou expor.",
-      "preco": 139,
-      "categorias": [
-        "Colecionáveis"
-      ],
-      "selos": [],
-      "fotos": [
-        "assets/produtos/mascara-obito-1-960.webp",
-        "assets/produtos/mascara-obito-2-960.webp"
-      ],
-      "adicionado": "2026-08-25",
-      "destaque": 9,
-      "combina": [
-        "marcador-personalizado",
-        "chaveiro-nossa-senhora"
       ]
     },
     {
@@ -614,7 +594,8 @@
         "marcador-personalizado"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "encomenda": true
     },
     {
       "id": "nome-casal",
@@ -817,7 +798,8 @@
         "chaveiro-divino-espirito-santo"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "encomenda": true
     },
     {
       "id": "modelo-anatomico",
@@ -839,7 +821,8 @@
         "letreiro-profissao"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "encomenda": true
     },
     {
       "id": "porta-lapis",
@@ -862,7 +845,8 @@
         "letreiro-profissao"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "encomenda": true
     },
     {
       "id": "ponteira-lapis",
@@ -886,7 +870,8 @@
         "chaveiro-professor"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "encomenda": true
     },
     {
       "id": "jesus-geometrico",
@@ -1013,7 +998,8 @@
         "letreiro-nome"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "arquivado": true
     },
     {
       "id": "coelhos-decorativos",
@@ -1031,7 +1017,8 @@
         "vaso-saquinho"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-07"
+      "adicionado": "2026-11-07",
+      "arquivado": true
     },
     {
       "id": "suporte-celular",
@@ -1053,7 +1040,8 @@
         "chaveiro-nome"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-09"
+      "adicionado": "2026-11-09",
+      "encomenda": true
     },
     {
       "id": "chaveiro-empresas",
@@ -1074,7 +1062,8 @@
         "ima-personalizado"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-09"
+      "adicionado": "2026-11-09",
+      "encomenda": true
     },
     {
       "id": "chaveiro-camera-foto",
@@ -1160,7 +1149,8 @@
         "chaveiro-coqueteleira"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-09"
+      "adicionado": "2026-11-09",
+      "arquivado": true
     },
     {
       "id": "chaveiro-volei",
@@ -1181,7 +1171,8 @@
         "chaveiro-polvo"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-09"
+      "adicionado": "2026-11-09",
+      "arquivado": true
     },
     {
       "id": "chaveiro-coqueteleira",
@@ -1203,7 +1194,8 @@
         "chaveiro-polvo"
       ],
       "sobConsulta": true,
-      "adicionado": "2026-11-09"
+      "adicionado": "2026-11-09",
+      "arquivado": true
     },
     {
       "id": "nossa-senhora-de-fatima",

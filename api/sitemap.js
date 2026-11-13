@@ -1,4 +1,4 @@
-// Sitemap automático: página inicial, páginas legais e todos os produtos visíveis
+// Sitemap automático: início, telas das linhas e de encomendas, páginas legais e todos os produtos visíveis
 const { SITE, ajustes, catalogo } = require("./_loja");
 
 module.exports = async (req, res) => {
@@ -7,6 +7,10 @@ module.exports = async (req, res) => {
   const dia = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
   const urls = [
     { loc: `${SITE}/`, freq: "weekly", pri: "1.0" },
+    { loc: `${SITE}/fe`, freq: "weekly", pri: "0.9" },
+    { loc: `${SITE}/com-seu-nome`, freq: "weekly", pri: "0.9" },
+    { loc: `${SITE}/encomendas`, freq: "monthly", pri: "0.8" },
+    { loc: `${SITE}/loja`, freq: "weekly", pri: "0.7" },
     ...catalogo().filter((p) => !porId.get(p.id)?.oculto).map((p) => ({ loc: `${SITE}/produto/${p.id}`, mod: dia(porId.get(p.id)?.atualizado_em) || p.adicionado || null, freq: "weekly", pri: "0.8" })),
     { loc: `${SITE}/privacidade.html`, pri: "0.2" },
     { loc: `${SITE}/termos.html`, pri: "0.2" },

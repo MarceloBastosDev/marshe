@@ -1949,3 +1949,88 @@ label { font-size: .8rem; font-weight: 500; }
 .order__avaliar:hover { background: #FFEFC2; }
 /* sem conta: um convite só (10% no 1º pedido + pontos) */
 .checkout:has([data-primeiro-conta]:not([hidden])) [data-pontos] { display: none; }
+
+/* ==========================================================
+   TELAS DA MARCA (/, /fe, /com-seu-nome, /loja, /encomendas)
+   O <html data-view> diz a tela atual; cada seção com data-views
+   só aparece nas telas listadas. Seções sem data-views aparecem em todas.
+   ========================================================== */
+html[data-view="home"] [data-views]:not([data-views~="home"]),
+html[data-view="linha"] [data-views]:not([data-views~="linha"]),
+html[data-view="encomendas"] [data-views]:not([data-views~="encomendas"]) { display: none !important; }
+
+/* Navegação principal (barra abaixo do cabeçalho) */
+.catbar a.chip { display: inline-flex; align-items: center; text-decoration: none; white-space: nowrap; }
+.catbar .chip[aria-current="page"] { background: var(--laranja-escuro); border-color: var(--laranja-escuro); color: #fff; }
+.catbar .chip--bf { background: #fff; border-color: var(--linha); color: var(--tinta-suave); font-weight: 600; }
+.catbar .chip--bf[aria-current="page"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+
+/* Abertura do início */
+.hero__eyebrow { grid-area: cd; margin: 0; font-size: .74rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .85); }
+@media (min-width: 900px) { .hero__eyebrow { margin-bottom: .9rem; font-size: .8rem; } }
+
+/* Linhas */
+.linhas { background: #fff; }
+.linhas__grid { display: grid; gap: 1.25rem; }
+.linha-card {
+  display: grid; overflow: hidden; border-radius: var(--r-lg); background: var(--claro); color: var(--tinta);
+  text-decoration: none; border: 1px solid var(--linha);
+  transition: transform var(--t-base) var(--ease-standard), box-shadow var(--t-base) var(--ease-standard);
+}
+.linha-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.linha-card__media { display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--claro-escuro); }
+.linha-card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform 600ms var(--ease-standard); }
+.linha-card:hover .linha-card__media img { transform: scale(1.04); }
+.linha-card__txt { display: grid; gap: .35rem; padding: 1.25rem 1.4rem 1.5rem; }
+.linha-card__kicker { font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-suave); }
+.linha-card__title { font-family: var(--font-titulo); font-size: clamp(1.6rem, 4vw, 2.1rem); line-height: 1.1; color: var(--laranja-escuro); }
+.linha-card__lead { color: var(--tinta-suave); max-width: 44ch; }
+.linha-card__go { display: inline-flex; align-items: center; gap: .4rem; margin-top: .4rem; font-weight: 600; color: var(--laranja-escuro); }
+.linha-card__go .ico { width: 1em; height: 1em; transition: transform var(--t-fast) var(--ease-standard); }
+.linha-card:hover .linha-card__go .ico { transform: translateX(4px); }
+.linhas__enc {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 1.1rem 1.4rem;
+  border-radius: var(--r); border: 1px dashed var(--linha); color: var(--tinta-suave); text-decoration: none;
+  transition: border-color var(--t-fast), background-color var(--t-fast);
+}
+.linhas__enc strong { display: block; color: var(--tinta); font-family: var(--font-titulo); }
+.linhas__enc .ico { flex: none; width: 1.3em; height: 1.3em; color: var(--laranja-escuro); }
+.linhas__enc:hover { border-color: var(--laranja-escuro); background: var(--claro); }
+
+/* Destaques do início */
+.destaques { background: var(--claro); }
+.destaques__head { display: grid; gap: 1rem; margin-bottom: 2rem; }
+.destaques__head h2 { margin: 0; }
+.destaques__head .btn { justify-self: start; }
+
+/* Cabeçalho das telas de linha */
+.shop__title { max-width: 640px; }
+.shop__h { font-size: clamp(1.9rem, 5vw, 2.8rem); margin: 0; }
+.shop__lead { margin: .5rem 0 0; color: var(--tinta-suave); font-size: 1.05rem; }
+.shop__lead:empty { display: none; }
+
+/* Encomendas */
+.enc-hero { background: #fff; padding: clamp(2.5rem, 7vw, 4.5rem) 0 clamp(2rem, 5vw, 3rem); border-bottom: 1px solid var(--linha); }
+.enc-hero__in { max-width: 820px; }
+.enc-hero__title { font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.05; margin-bottom: .75rem; }
+.enc-hero__lead { font-size: clamp(1.05rem, 2.4vw, 1.2rem); color: var(--tinta-suave); max-width: 52ch; margin: 0; }
+.enc-hero__cta { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.ja-fizemos { background: var(--claro); }
+
+/* Como fazemos */
+.about__steps { list-style: none; counter-reset: passo; padding: 0; margin: 1.25rem 0 1.5rem; display: grid; gap: .9rem; }
+.about__steps li { counter-increment: passo; position: relative; padding-left: 2.6rem; color: var(--tinta-suave); line-height: 1.45; }
+.about__steps li::before {
+  content: counter(passo); position: absolute; left: 0; top: .1rem; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  display: grid; place-items: center; background: var(--claro-escuro); color: var(--laranja-escuro); font-family: var(--font-titulo); font-weight: 700; font-size: .9rem;
+}
+.about__steps strong { display: block; color: var(--tinta); font-family: var(--font-titulo); }
+
+@media (min-width: 700px) {
+  .linhas__grid { grid-template-columns: 1fr 1fr; }
+  .about__steps { grid-template-columns: 1fr 1fr; gap: 1.1rem 1.5rem; }
+}
+@media (min-width: 900px) {
+  .linha-card__media { aspect-ratio: 5 / 4; }
+  .destaques__head { grid-template-columns: 1fr auto; align-items: end; }
+}

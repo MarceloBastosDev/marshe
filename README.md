@@ -6,7 +6,7 @@ impressão 3D, com o pedido fechado pelo WhatsApp. Site: www.marshe3d.com.br
 ## Estrutura
 
 ```
-index.html          loja (página única)
+index.html          site inteiro (uma página com telas: / início, /fe, /com-seu-nome, /loja, /encomendas)
 admin.html          painel da loja: pedidos, clientes, pontos, preços e detalhes dos produtos
 privacidade.html    política de privacidade
 termos.html         termos de uso

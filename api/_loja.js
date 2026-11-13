@@ -39,7 +39,8 @@ async function avaliacoes(id) {
   } catch { return []; } finally { clearTimeout(t); }
 }
 
-const catalogo = () => JSON.parse(ler("produtos.json")).produtos || [];
+// peças com "arquivado": true saem do site (continuam no arquivo para voltar quando quiser)
+const catalogo = () => (JSON.parse(ler("produtos.json")).produtos || []).filter((p) => !p.arquivado);
 
 // produto como a loja mostra: arquivo + ajustes do painel
 function aplicar(p, l) {

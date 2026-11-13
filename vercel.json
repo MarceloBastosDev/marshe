@@ -4,6 +4,10 @@
     "api/sitemap.js": { "includeFiles": "{produtos.json,js/config.js}" }
   },
   "rewrites": [
+    { "source": "/fe", "destination": "/index.html" },
+    { "source": "/com-seu-nome", "destination": "/index.html" },
+    { "source": "/loja", "destination": "/index.html" },
+    { "source": "/encomendas", "destination": "/index.html" },
     { "source": "/produto/:id", "destination": "/api/produto?id=:id" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" }
   ]

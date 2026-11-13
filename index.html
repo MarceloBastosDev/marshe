@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Marshê Studio 3D · Impressão 3D em Terra de Areia e Litoral Norte RS</title>
-  <meta name="description" content="Estúdio de impressão 3D em Terra de Areia/RS. Artigos religiosos, chaveiros, estatuetas, colecionáveis e peças personalizadas. Peça pelo WhatsApp e ganhe 10% no primeiro pedido.">
+  <title>Marshê Studio 3D · Imagens de fé e presentes com o seu nome, feitos à mão</title>
+  <meta name="description" content="Imagens de santos e Nossas Senhoras, e presentes com o seu nome, criados e finalizados à mão pela Marshê em Terra de Areia/RS. Encomendas e lembrancinhas para todo o Brasil.">
   <meta name="theme-color" content="#D63803">
   <link rel="canonical" href="https://www.marshe3d.com.br/">
 
@@ -13,8 +13,8 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="Marshê Studio 3D">
-  <meta property="og:title" content="Marshê Studio 3D · Pensou? A gente transforma em 3D.">
-  <meta property="og:description" content="Peças em impressão 3D feitas em Terra de Areia/RS: santos, chaveiros, colecionáveis e personalizados. 10% off no primeiro pedido.">
+  <meta property="og:title" content="Marshê Studio 3D · Peças com significado, feitas à mão">
+  <meta property="og:description" content="Imagens de fé e presentes com o seu nome, criados e finalizados à mão em Terra de Areia/RS.">
   <meta property="og:url" content="https://www.marshe3d.com.br/">
   <meta property="og:image" content="https://www.marshe3d.com.br/assets/img/og-marshe.jpg">
   <meta property="og:image:width" content="1200">
@@ -30,14 +30,22 @@
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/inter-latin.woff2" crossorigin>
   <link rel="preload" as="image" imagesrcset="assets/produtos/nossa-senhora-aparecida-1-480.webp 480w, assets/produtos/nossa-senhora-aparecida-1-960.webp 960w" imagesizes="(max-width: 899px) 140px, 320px" fetchpriority="high">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Telas do site (mesma página): / início, /fe, /com-seu-nome, /loja, /encomendas. O CSS mostra só as seções da tela atual. -->
+  <script>
+    (function () {
+      var p = location.pathname.replace(/\/+$/, "") || "/";
+      var v = { "/": "home", "/fe": "linha", "/com-seu-nome": "linha", "/loja": "linha", "/encomendas": "encomendas" }[p] || (/^\/produto\//.test(p) ? "linha" : "home");
+      document.documentElement.setAttribute("data-view", v);
+    })();
+  </script>
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Store",
     "name": "Marshê Studio 3D",
-    "slogan": "Pensou? A gente transforma em 3D.",
-    "description": "Estúdio de impressão 3D: artigos religiosos, chaveiros, estatuetas, colecionáveis e personalizados.",
+    "slogan": "Peças com significado, feitas à mão.",
+    "description": "Estúdio de criação em Terra de Areia/RS: imagens de fé e presentes com o seu nome, feitos em 3D e finalizados à mão.",
     "image": "https://www.marshe3d.com.br/assets/img/og-marshe.jpg",
     "url": "https://www.marshe3d.com.br/",
     "email": "marshe3d@gmail.com",
@@ -52,7 +60,7 @@
 </head>
 <body>
   <div class="intro-veil" aria-hidden="true"></div>
-  <a class="skip" href="#catalogo">Pular para os produtos</a>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Ícones -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -83,7 +91,7 @@
   </svg>
 
   <!-- FITA DE ANÚNCIOS (Black Marshê). Troque os textos aqui; a segunda lista é cópia da primeira, só para o loop não ter emenda. -->
-  <a class="promo" href="#catalogo" data-cat-link="Ofertas" aria-label="Black Marshê: ofertas já no ar. Ver ofertas">
+  <a class="promo" href="/loja" data-cat-link="Ofertas" aria-label="Black Marshê: ofertas já no ar. Ver ofertas">
     <span class="promo__track" aria-hidden="true">
       <span class="promo__list">
         <span><strong>BLACK MARSHÊ</strong> ofertas já no ar · termina em <b data-cd>30/11</b></span>
@@ -102,14 +110,14 @@
 
   <header class="header" id="topo">
     <div class="wrap header__in">
-      <a class="logo" href="#topo" aria-label="Marshê Studio 3D, início">
+      <a class="logo" href="/" aria-label="Marshê Studio 3D, início">
         <img src="assets/logo/logo-branca.svg" width="600" height="132" alt="Marshê"><span class="logo__sub">studio 3D</span>
       </a>
       <a class="header__wa" href="#" data-wa="Olá, Marshê! Vim pelo site."><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Fale conosco</a>
       <form class="hsearch" role="search" data-hsearch>
         <label class="sr" for="busca">Buscar produto</label>
         <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
-        <input id="busca" type="search" placeholder="O que você procura? Santa, chaveiro, máscara…" autocomplete="off" enterkeyhint="search" data-search
+        <input id="busca" type="search" placeholder="O que você procura? Nossa Senhora, chaveiro com nome…" autocomplete="off" enterkeyhint="search" data-search
           role="combobox" aria-expanded="false" aria-controls="busca-resultados" aria-autocomplete="list">
         <div class="hsearch__results" id="busca-resultados" data-results hidden></div>
       </form>
@@ -123,27 +131,33 @@
         <span class="cart-btn__count" data-cart-count hidden>0</span>
       </button>
     </div>
-    <nav class="catbar" aria-label="Categorias">
+    <nav class="catbar" aria-label="Navegação principal">
       <div class="wrap catbar__wrap" data-catwrap>
-        <button class="catbar__arrow catbar__arrow--prev" type="button" data-catscroll="-1" aria-label="Ver categorias anteriores" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <div class="catbar__in" data-catbar></div>
-        <button class="catbar__arrow catbar__arrow--next" type="button" data-catscroll="1" aria-label="Ver mais categorias" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <button class="catbar__arrow catbar__arrow--prev" type="button" data-catscroll="-1" aria-label="Voltar" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <div class="catbar__in" data-catbar>
+          <a class="chip" href="/" data-nav="/">Início</a>
+          <a class="chip" href="/fe" data-nav="/fe">Fé</a>
+          <a class="chip" href="/com-seu-nome" data-nav="/com-seu-nome">Com o seu nome</a>
+          <a class="chip" href="/encomendas" data-nav="/encomendas">Encomendas</a>
+          <a class="chip" href="/loja" data-nav="/loja">Todos os produtos</a>
+        </div>
+        <button class="catbar__arrow catbar__arrow--next" type="button" data-catscroll="1" aria-label="Ver mais" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></button>
       </div>
     </nav>
   </header>
 
-  <main>
-    <!-- HERO -->
-    <section class="hero">
-      
+  <main id="conteudo">
+    <!-- INÍCIO: abertura da marca (só na tela inicial) -->
+    <section class="hero" data-views="home">
+
       <div class="wrap hero__in">
-        <p class="bf-count" data-countdown hidden><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg><span>Black Marshê termina em</span> <b data-cd-long>…</b> <a href="#catalogo" data-cat-link="Ofertas">Ver ofertas</a></p>
         <div class="hero__text">
-          <h1 class="hero__title" data-split="hero">Pensou? A gente transforma em <span class="hl">3D.</span></h1>
-          <p class="hero__lead">Santos, chaveiros e colecionáveis feitos em Terra de Areia, ou criados a partir da sua ideia. Pedido fechado pelo WhatsApp. Com conta, ganhe 10% no primeiro pedido e 5% de volta em pontos.</p>
+          <p class="hero__eyebrow">Marshê Studio 3D · Terra de Areia/RS</p>
+          <h1 class="hero__title" data-split="hero">Peças com significado, <span class="hl">feitas à mão.</span></h1>
+          <p class="hero__lead">Imagens de fé e presentes com o seu nome, criados e finalizados um a um pela Marshê.</p>
           <div class="hero__cta">
-            <a class="btn btn--white" href="#catalogo">Ver produtos <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-            <a class="btn btn--outline-white" href="#personalizados">Personalizar</a>
+            <a class="btn btn--white" href="#linhas">Conhecer as linhas <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <a class="btn btn--outline-white" href="/encomendas">Encomendas</a>
           </div>
         </div>
         <div class="hero__media" data-hero-media>
@@ -158,13 +172,63 @@
       </div>
     </section>
 
-    <!-- CATÁLOGO -->
-    <section class="section catalog" id="catalogo">
+    <!-- AS LINHAS DA MARCA (início) -->
+    <section class="section linhas" id="linhas" data-views="home">
+      <div class="wrap">
+        <div class="section__head reveal">
+          <p class="eyebrow">As linhas Marshê</p>
+          <h2 data-split>Duas linhas, o mesmo cuidado</h2>
+          <p class="section__lead">Cada peça é desenhada, impressa e pintada aqui no estúdio. Escolha por onde começar.</p>
+        </div>
+        <div class="linhas__grid">
+          <a class="linha-card reveal" href="/fe">
+            <span class="linha-card__media"><img loading="lazy" decoding="async" src="assets/produtos/sagrada-familia-1-480.webp" srcset="assets/produtos/sagrada-familia-1-480.webp 480w, assets/produtos/sagrada-familia-1-960.webp 960w" sizes="(max-width: 899px) 90vw, 540px" width="480" height="600" alt="Sagrada Família pintada à mão"></span>
+            <span class="linha-card__txt">
+              <span class="linha-card__kicker">Linha</span>
+              <strong class="linha-card__title">Fé</strong>
+              <span class="linha-card__lead">Santos, Nossas Senhoras e peças de devoção para o oratório, a estante ou para presentear.</span>
+              <span class="linha-card__go">Ver a linha Fé <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+            </span>
+          </a>
+          <a class="linha-card reveal" href="/com-seu-nome">
+            <span class="linha-card__media"><img loading="lazy" decoding="async" src="assets/produtos/luminaria-foto-1-480.webp" srcset="assets/produtos/luminaria-foto-1-480.webp 480w, assets/produtos/luminaria-foto-1-960.webp 960w" sizes="(max-width: 899px) 90vw, 540px" width="480" height="600" alt="Luminária personalizada com foto"></span>
+            <span class="linha-card__txt">
+              <span class="linha-card__kicker">Linha</span>
+              <strong class="linha-card__title">Com o seu nome</strong>
+              <span class="linha-card__lead">Chaveiros, letreiros, luminárias e lembranças com o nome, a foto ou o pet de quem vai receber.</span>
+              <span class="linha-card__go">Ver a linha Com o seu nome <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+            </span>
+          </a>
+        </div>
+        <a class="linhas__enc reveal" href="/encomendas">
+          <span><strong>Encomendas e lembrancinhas</strong> Uma peça criada do zero ou lembranças em quantidade para casamento, batizado, paróquia e empresa.</span>
+          <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- DESTAQUES (início): poucas peças escolhidas -->
+    <section class="section destaques" id="destaques" data-views="home">
+      <div class="wrap">
+        <div class="destaques__head reveal">
+          <div>
+            <p class="eyebrow">Os mais queridos</p>
+            <h2 data-split>Peças que já foram para muitas casas</h2>
+          </div>
+          <a class="btn btn--ghost" href="/loja">Ver todos os produtos <svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        </div>
+        <div class="grid grid--destaques" data-grid-destaques></div>
+      </div>
+    </section>
+
+    <!-- CATÁLOGO (telas /fe, /com-seu-nome e /loja) -->
+    <section class="section catalog" id="catalogo" data-views="linha">
       <div class="wrap">
         <div class="shop__head">
-          <div>
-            <p class="eyebrow">Loja</p>
-            <h2>Todos os produtos</h2>
+          <div class="shop__title">
+            <p class="eyebrow" data-linha-kicker>Loja</p>
+            <h1 class="shop__h" data-linha-titulo>Todos os produtos</h1>
+            <p class="shop__lead" data-linha-lead></p>
           </div>
           <div class="toolbar">
             <button type="button" class="toolbar__filter" data-open-filters aria-controls="filtros">
@@ -202,7 +266,7 @@
               <div class="afilters" data-active></div>
             </div>
             <div class="grid" data-grid></div>
-            <p class="empty" data-empty hidden>Nenhum produto com esses filtros. <button type="button" class="link-btn" data-clear>Limpar filtros</button> ou <a href="#personalizados">peça uma personalizada</a>.</p>
+            <p class="empty" data-empty hidden>Nenhum produto com esses filtros. <button type="button" class="link-btn" data-clear>Limpar filtros</button> ou <a href="/encomendas#personalizados">encomende uma peça</a>.</p>
             <div class="recent" data-recent hidden><h3>Vistos recentemente</h3><div class="mini-grid" data-recent-list></div></div>
           </div>
         </div>
@@ -210,41 +274,25 @@
       <div class="fscrim" data-fscrim hidden></div>
     </section>
 
-    <!-- PEDIDOS EM QUANTIDADE -->
-    <section class="section bulk" id="quantidade">
-      <div class="wrap bulk__in">
-        <div class="bulk__text reveal">
-          <p class="eyebrow">Pedidos em quantidade</p>
-          <h2 data-split>Lembrancinhas que ninguém esquece</h2>
-          <p>Personalizamos com nome, data, frase ou logo e fazemos preço especial por volume. Do terço do batizado ao brinde da empresa.</p>
-          <ul class="bulk__tags">
-            <li>Casamento</li><li>Batizado</li><li>Primeira comunhão</li><li>Pastorais e paróquias</li><li>Empresas e eventos</li>
-          </ul>
+    <!-- ENCOMENDAS: abertura da tela /encomendas -->
+    <section class="enc-hero" data-views="encomendas">
+      <div class="wrap enc-hero__in">
+        <p class="eyebrow">Encomendas</p>
+        <h1 class="enc-hero__title" data-split>Pensou? A gente transforma em 3D.</h1>
+        <p class="enc-hero__lead">Uma peça criada do zero a partir da sua ideia, ou lembrancinhas em quantidade para casamento, batizado, primeira comunhão, paróquia e empresa.</p>
+        <div class="enc-hero__cta">
+          <a class="btn btn--primary" href="#personalizados">Criar uma peça</a>
+          <a class="btn btn--ghost" href="#quantidade">Lembrancinhas em quantidade</a>
         </div>
-        <form class="card-form bulk__form reveal" data-form="quantidade">
-          <h3>Peça seu orçamento</h3>
-          <label>Ocasião
-            <select name="ocasiao" required>
-              <option value="">Escolha…</option>
-              <option>Casamento</option><option>Batizado</option><option>Primeira comunhão</option><option>Pastoral / paróquia</option><option>Empresa / evento</option><option>Outra</option>
-            </select>
-          </label>
-          <div class="row2">
-            <label>Quantidade<input name="quantidade" type="number" min="5" inputmode="numeric" placeholder="Ex.: 50" required></label>
-            <label>Para quando?<input name="data" type="text" placeholder="Ex.: 15/12"></label>
-          </div>
-          <label><span>Qual peça? <span class="opt">(opcional)</span></span><input name="peca" type="text" placeholder="Ex.: chaveiro Nossa Senhora com nome"></label>
-          <button class="btn btn--wa btn--block" type="submit"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Pedir orçamento no WhatsApp</button>
-        </form>
       </div>
     </section>
 
     <!-- PERSONALIZADOS -->
-    <section class="section custom" id="personalizados">
+    <section class="section custom" id="personalizados" data-views="encomendas">
       <div class="wrap">
         <div class="section__head reveal">
           <p class="eyebrow eyebrow--light">Personalizados</p>
-          <h2 data-split>Tem uma ideia? A gente transforma em 3D.</h2>
+          <h2 data-split>Uma peça que ainda não existe</h2>
           <p class="section__lead">Um presente com a cara de quem vai receber, uma peça que não existe à venda ou aquela réplica que você sempre quis.</p>
         </div>
         <ol class="steps">
@@ -275,26 +323,73 @@
       </div>
     </section>
 
+
+    <!-- JÁ FIZEMOS (encomendas): peças com "encomenda": true no produtos.json -->
+    <section class="section ja-fizemos" id="ja-fizemos" data-views="encomendas">
+      <div class="wrap">
+        <div class="section__head reveal">
+          <p class="eyebrow">Sob encomenda</p>
+          <h2 data-split>Algumas peças que já criamos</h2>
+          <p class="section__lead">Cada uma começou como um pedido. Gostou de alguma? Peça um orçamento com o seu nome, a sua logo ou as suas cores.</p>
+        </div>
+        <div class="grid" data-grid-enc></div>
+      </div>
+    </section>
+
+    <!-- PEDIDOS EM QUANTIDADE -->
+    <section class="section bulk" id="quantidade" data-views="encomendas">
+      <div class="wrap bulk__in">
+        <div class="bulk__text reveal">
+          <p class="eyebrow">Pedidos em quantidade</p>
+          <h2 data-split>Lembrancinhas que ninguém esquece</h2>
+          <p>Personalizamos com nome, data, frase ou logo e fazemos preço especial por volume. Do terço do batizado ao brinde da empresa.</p>
+          <ul class="bulk__tags">
+            <li>Casamento</li><li>Batizado</li><li>Primeira comunhão</li><li>Pastorais e paróquias</li><li>Empresas e eventos</li>
+          </ul>
+        </div>
+        <form class="card-form bulk__form reveal" data-form="quantidade">
+          <h3>Peça seu orçamento</h3>
+          <label>Ocasião
+            <select name="ocasiao" required>
+              <option value="">Escolha…</option>
+              <option>Casamento</option><option>Batizado</option><option>Primeira comunhão</option><option>Pastoral / paróquia</option><option>Empresa / evento</option><option>Outra</option>
+            </select>
+          </label>
+          <div class="row2">
+            <label>Quantidade<input name="quantidade" type="number" min="5" inputmode="numeric" placeholder="Ex.: 50" required></label>
+            <label>Para quando?<input name="data" type="text" placeholder="Ex.: 15/12"></label>
+          </div>
+          <label><span>Qual peça? <span class="opt">(opcional)</span></span><input name="peca" type="text" placeholder="Ex.: chaveiro Nossa Senhora com nome"></label>
+          <button class="btn btn--wa btn--block" type="submit"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Pedir orçamento no WhatsApp</button>
+        </form>
+      </div>
+    </section>
+
     <!-- SOBRE -->
-    <section class="section about" id="sobre">
+    <section class="section about" id="sobre" data-views="home">
       <div class="wrap about__in">
         <!-- [FALTA FOTO] Coloque a foto de vocês em assets/img/marcelo-e-sheila.webp e troque este bloco por <img> -->
         <div class="about__photo ph ph--photo reveal" hidden role="img" aria-label="Espaço para a foto de Marcelo e Sheila">
           <span class="ph__tag">[FOTO DE MARCELO E SHEILA]</span>
         </div>
         <div class="about__text reveal">
-          <p class="eyebrow">Sobre a Marshê</p>
-          <h2 data-split>Uma ideia simples: criar tudo o que vem na cabeça.</h2>
-          <p>A Marshê nasceu em <strong>Terra de Areia/RS</strong>, fundada por Marcelo Bastos e Sheila Barros, com o propósito de criar produtos diferentes, personalizados e fora do comum.</p>
-          <p>Seja a partir de uma referência, de um desenho, de uma conversa ou de uma ideia que ainda nem existe, a gente transforma em algo real com a impressão 3D. E cada peça passa pelas nossas mãos: lixamos, conferimos e pintamos com calma.</p>
-          <p class="about__sign">Pensou? A gente transforma em 3D.</p>
+          <p class="eyebrow">Como fazemos</p>
+          <h2 data-split>Cada peça passa pelas nossas mãos.</h2>
+          <p>A Marshê é o estúdio de Marcelo Bastos e Sheila Barros, em <strong>Terra de Areia/RS</strong>. A impressão 3D é só o começo: o que faz uma peça Marshê é o que vem depois.</p>
+          <ol class="about__steps">
+            <li><strong>Desenho</strong>Cada modelo é escolhido ou criado por nós, e ajustado até ficar do nosso jeito.</li>
+            <li><strong>Impressão</strong>Camada por camada, sob encomenda, para você.</li>
+            <li><strong>Acabamento</strong>Lixamos, conferimos e pintamos à mão, com calma.</li>
+            <li><strong>Entrega</strong>Embalada com cuidado, pronta para o oratório ou para presentear.</li>
+          </ol>
+          <p class="about__sign">Marcelo e Sheila</p>
           <a class="btn btn--ghost" href="https://www.instagram.com/marshe_studio3d/" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-ig"/></svg> Acompanhe os bastidores</a>
         </div>
       </div>
     </section>
 
     <!-- PONTOS MARSHÊ (aparece quando o programa está configurado em js/config.js) -->
-    <section class="section pontos" id="pontos" data-pontos-on hidden>
+    <section class="section pontos" id="pontos" data-views="linha" data-pontos-on hidden>
       <div class="wrap pontos__in">
         <div class="pontos__text reveal">
           <p class="eyebrow">Pontos Marshê</p>
@@ -327,7 +422,7 @@
     </section>
 
     <!-- DEPOIMENTOS -->
-    <section class="section reviews" id="depoimentos" hidden>
+    <section class="section reviews" id="depoimentos" data-views="home" hidden>
       <div class="wrap">
         <div class="section__head reveal">
           <p class="eyebrow">Quem já tem uma Marshê</p>
@@ -355,7 +450,7 @@
           <details class="reveal"><summary>Vocês enviam? Posso retirar?</summary><p>Você pode retirar em Terra de Areia/RS, em local combinado. Também fazemos entrega no Litoral Norte e envio pelos Correios para todo o Brasil: é só escolher <strong>Entrega</strong> no carrinho. Valores estimados para um pacote pequeno (o valor exato é calculado pelo CEP e confirmado na conversa):</p><div data-frete-tabela></div></details>
           <details class="reveal"><summary>Quais as formas de pagamento?</summary><p>Aceitamos <strong>Pix</strong>, <strong>cartão</strong> e <strong>dinheiro</strong>. Ao finalizar o pedido, o site mostra o <strong>QR code e o Pix copia e cola</strong> já com o valor, se você quiser adiantar o pagamento (chave Pix: <strong>marshe3d@gmail.com</strong>). Também dá para combinar a forma de pagamento com a gente pelo WhatsApp.</p></details>
           <details class="reveal"><summary>Como cuidar da minha peça?</summary><p>Evite deixar a peça no sol forte ou em lugares muito quentes, como dentro do carro fechado. Para limpar, use um pano seco ou levemente úmido, sem álcool ou produtos de limpeza sobre a pintura. Partes finas, como coroas, asas e letras, são mais delicadas: segure a peça pela base.</p></details>
-          <details class="reveal"><summary>Dá para personalizar cores, nomes e tamanhos?</summary><p>Sim! A maioria das peças pode ganhar outras cores, um nome ou um tamanho diferente. Conte o que você quer no WhatsApp e passamos o valor. Para criar uma peça do zero, use o formulário de <a href="#personalizados">personalizados</a>.</p></details>
+          <details class="reveal"><summary>Dá para personalizar cores, nomes e tamanhos?</summary><p>Sim! A maioria das peças pode ganhar outras cores, um nome ou um tamanho diferente. Conte o que você quer no WhatsApp e passamos o valor. Para criar uma peça do zero, veja a página de <a href="/encomendas">encomendas</a>.</p></details>
           <details class="reveal" data-pontos-on hidden><summary>Como funciona o Pontos Marshê?</summary><p>Crie sua conta com o seu e-mail (botão "Entrar", no topo) e finalize o pedido logado. Quando o pedido for entregue, 5% do valor pago volta em pontos (1 ponto = R$ 0,01), válidos por 6 meses, para usar como desconto no próximo pedido. E indicando amigos pelo seu link (dentro da sua conta), vocês dois ganham R$ 10 em pontos na primeira compra dele. Veja o <a href="#regulamento">regulamento</a>.</p></details>
           <details class="reveal"><summary>Como funciona o desconto de 10%?</summary><p>Vale para o seu primeiro pedido com a Marshê, para quem tem conta no site (é rápido: e-mail e senha ou Google). Com a conta conectada, o desconto já entra sozinho no carrinho e vai junto na mensagem do WhatsApp. A conta também acumula 5% de volta em pontos em todas as compras.</p></details>
         </div>
@@ -367,7 +462,7 @@
     <!-- Novidades: o cadastro é feito pelo WhatsApp (o site não guarda dados) -->
     <section class="news" aria-labelledby="news-title">
       <form class="wrap news__in" data-form="novidades">
-        <h2 class="news__title" id="news-title">Receba ofertas e novidades da Marshê no WhatsApp</h2>
+        <h2 class="news__title" id="news-title">Receba os lançamentos da Marshê no WhatsApp</h2>
         <label class="sr" for="news-nome">Seu nome</label>
         <input id="news-nome" name="nome" type="text" autocomplete="given-name" placeholder="Seu nome" required>
         <button class="btn btn--white" type="submit"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg> Quero receber</button>
@@ -384,29 +479,27 @@
 
       <div class="fcols">
         <div class="fcol">
-          <h3>Loja</h3>
+          <h3>Linhas</h3>
           <ul>
-            <li><a href="#catalogo" data-cat-link="Ofertas">Ofertas Black Marshê</a></li>
-            <li><a href="#catalogo" data-flag-link="mais">Mais pedidos</a></li>
-            <li><a href="#catalogo" data-flag-link="novo">Novidades</a></li>
-            <li><a href="#catalogo" data-cat-link="Religiosos">Religiosos</a></li>
-            <li><a href="#catalogo" data-cat-link="Estatuetas">Estatuetas</a></li>
-            <li><a href="#catalogo" data-cat-link="Chaveiros">Chaveiros</a></li>
-            <li><a href="#catalogo" data-cat-link="Colecionáveis">Colecionáveis</a></li>
-            <li><a href="#catalogo" data-cat-link="Todos">Todos os produtos</a></li>
+            <li><a href="/fe">Fé</a></li>
+            <li><a href="/com-seu-nome">Com o seu nome</a></li>
+            <li><a href="/loja" data-flag-link="mais">Mais pedidos</a></li>
+            <li><a href="/loja" data-flag-link="novo">Novidades</a></li>
+            <li><a href="/loja" data-cat-link="Ofertas">Ofertas Black Marshê</a></li>
+            <li><a href="/loja">Todos os produtos</a></li>
           </ul>
         </div>
         <div class="fcol">
           <h3>Encomendas</h3>
           <ul>
-            <li><a href="#personalizados">Peça personalizada</a></li>
-            <li><a href="#quantidade">Lembrancinhas em quantidade</a></li>
-            <li><a href="#quantidade">Casamento e batizado</a></li>
-            <li><a href="#quantidade">Pastorais e empresas</a></li>
+            <li><a href="/encomendas#personalizados">Criar uma peça</a></li>
+            <li><a href="/encomendas#quantidade">Lembrancinhas em quantidade</a></li>
+            <li><a href="/encomendas#quantidade">Casamento e batizado</a></li>
+            <li><a href="/encomendas#quantidade">Paróquias e empresas</a></li>
           </ul>
           <h3>Institucional</h3>
           <ul>
-            <li><a href="#sobre">Sobre a Marshê</a></li>
+            <li><a href="/#sobre">Sobre a Marshê</a></li>
             <li hidden><a href="#depoimentos">Depoimentos</a></li>
             <li><a href="privacidade.html">Política de Privacidade</a></li>
             <li><a href="termos.html">Termos de Uso</a></li>
@@ -449,7 +542,7 @@
 
       <div class="fbrand">
         <span class="logo logo--footer"><img src="assets/logo/logo-laranja.svg" width="600" height="132" alt="Marshê" loading="lazy"><span class="logo__sub">studio 3D</span></span>
-        <p>Pensou? A gente transforma em 3D. Impressão 3D em Terra de Areia e no Litoral Norte RS.</p>
+        <p>Peças com significado, feitas à mão. Imagens de fé e presentes com o seu nome, criados em Terra de Areia/RS.</p>
       </div>
     </div>
 
