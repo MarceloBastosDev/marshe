@@ -1,14 +1,47 @@
 {
   "functions": {
-    "api/produto.js": { "includeFiles": "{index.html,produtos.json,js/config.js}" },
-    "api/sitemap.js": { "includeFiles": "{produtos.json,js/config.js}" }
+    "api/produto.js": {
+      "includeFiles": "{site.html,produtos.json,js/config.js}"
+    },
+    "api/sitemap.js": {
+      "includeFiles": "{produtos.json,js/config.js}"
+    },
+    "api/pagina.js": {
+      "includeFiles": "{site.html,produtos.json,js/config.js}"
+    }
   },
   "rewrites": [
-    { "source": "/fe", "destination": "/index.html" },
-    { "source": "/com-seu-nome", "destination": "/index.html" },
-    { "source": "/loja", "destination": "/index.html" },
-    { "source": "/encomendas", "destination": "/index.html" },
-    { "source": "/produto/:id", "destination": "/api/produto?id=:id" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+    {
+      "source": "/",
+      "destination": "/api/pagina"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/api/pagina"
+    },
+    {
+      "source": "/fe",
+      "destination": "/api/pagina?tela=fe"
+    },
+    {
+      "source": "/com-seu-nome",
+      "destination": "/api/pagina?tela=com-seu-nome"
+    },
+    {
+      "source": "/loja",
+      "destination": "/api/pagina?tela=loja"
+    },
+    {
+      "source": "/encomendas",
+      "destination": "/api/pagina?tela=encomendas"
+    },
+    {
+      "source": "/produto/:id",
+      "destination": "/api/produto?id=:id"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    }
   ]
 }

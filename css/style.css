@@ -2034,3 +2034,7 @@ html[data-view="encomendas"] [data-views]:not([data-views~="encomendas"]) { disp
   .linha-card__media { aspect-ratio: 5 / 4; }
   .destaques__head { grid-template-columns: 1fr auto; align-items: end; }
 }
+
+/* Lista que vem pronta do servidor (api/pagina.js) até o JavaScript desenhar os cards */
+.card--ssr { animation: none; box-shadow: none; border: 1px solid var(--linha); }
+.card--ssr .card__desc { margin: .3rem 0 .6rem; font-size: .85rem; color: var(--tinta-suave); line-height: 1.45; }

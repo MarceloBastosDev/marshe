@@ -189,7 +189,7 @@ Pontos vencidos deixam de contar sozinhos, sem precisar fazer nada.
 1. No SQL Editor:
    `update public.regras_pontos set cashback_pct = 5, validade_meses = 6 where id = 1;`
 2. Em `js/config.js`: `cashbackPct` e `validadePontosMeses`.
-3. No `index.html`: os textos da seção "Pontos Marshê" (regulamento) e da
+3. No `site.html`: os textos da seção "Pontos Marshê" (regulamento) e da
    pergunta do FAQ.
 
 ## 4. Testar sem banco

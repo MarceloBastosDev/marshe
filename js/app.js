@@ -1691,25 +1691,6 @@
      ========================================================== */
   aplicarTela(telaAtual);
 
-  function productLd() {
-    const base = location.origin + "/";
-    const ld = {
-      "@context": "https://schema.org", "@type": "ItemList",
-      itemListElement: PRODUCTS.map((p, i) => ({
-        "@type": "ListItem", position: i + 1,
-        item: {
-          "@type": "Product", name: p.nome, description: p.descricao, category: p.categorias.join(", "),
-          ...(p.fotos?.[0] ? { image: /^https?:/.test(p.fotos[0]) ? p.fotos[0] : base + p.fotos[0] } : {}),
-          brand: { "@type": "Brand", name: "Marshê Studio 3D" },
-          offers: consulta(p) ? undefined : { "@type": "Offer", priceCurrency: "BRL", price: minPrice(p).toFixed(2), availability: "https://schema.org/MadeToOrder", url: `${base}produto/${p.id}` }
-        }
-      }))
-    };
-    const s = document.createElement("script");
-    s.type = "application/ld+json";
-    s.textContent = JSON.stringify(ld);
-    document.head.appendChild(s);
-  }
 
   // Preços editados no painel da loja (Supabase) sobrescrevem os do produtos.json.
   // Se o banco não responder em 2,5 s, a loja abre com os preços do arquivo.
@@ -1770,7 +1751,6 @@
       renderRecent();
       if (conviteNovo && PONTOS_ON) setTimeout(() => toast(`🎁 Convite aceito! Crie sua conta e ganhe ${brl((CFG.bonusIndicacao ?? 1000) / 100)} em pontos na 1ª compra`, "Criar conta", () => conta()?.abrir()), 1200);
       renderCart();
-      productLd();
       const d = byId(CFG.produtoDestaque);
       if (d) $("[data-hero-chip]").setAttribute("href", `/produto/${d.id}`);
       if (d) $("[data-hero-chip]").innerHTML = `<span class="hero__chip-name">${esc(d.nome)}</span><span class="hero__chip-price">${priceHtml(d).replace(/<small>.*?<\/small>/, "a partir de ")}</span>`;

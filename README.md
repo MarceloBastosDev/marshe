@@ -6,7 +6,8 @@ impressão 3D, com o pedido fechado pelo WhatsApp. Site: www.marshe3d.com.br
 ## Estrutura
 
 ```
-index.html          site inteiro (uma página com telas: / início, /fe, /com-seu-nome, /loja, /encomendas)
+site.html           site inteiro (uma página com telas: / início, /fe, /com-seu-nome, /loja, /encomendas);
+                    a Vercel entrega pelo api/pagina.js, que coloca os produtos e preços do painel no HTML
 admin.html          painel da loja: pedidos, clientes, pontos, preços e detalhes dos produtos
 privacidade.html    política de privacidade
 termos.html         termos de uso
@@ -27,10 +28,10 @@ vercel.json         liga /produto/<id> e /sitemap.xml às funções de api/
 Não há build nem dependências. Para testar no computador, sirva a pasta:
 
 ```bash
-python -m http.server 8000
+node .claude/serve.mjs
 ```
 
-e abra http://localhost:8000 (abrir o `index.html` direto não carrega o `produtos.json`).
+e abra http://localhost:5173 (ele imita a Vercel: monta as telas e as páginas de produto pelas funções de api/).
 
 ## Manutenção
 

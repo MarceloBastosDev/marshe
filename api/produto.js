@@ -1,12 +1,12 @@
 // Página própria de cada produto: /produto/<id>
-// Entrega a mesma loja (index.html), mas com título, descrição, foto, preço e dados
+// Entrega a mesma loja (site.html), mas com título, descrição, foto, preço e dados
 // estruturados do produto já no HTML, para o Google e para a prévia do link no WhatsApp.
 // O navegador abre a loja normalmente, com a janela do produto aberta.
 const { SITE, ler, ajustes, avaliacoes, catalogo, aplicar, menorPreco, absoluta, esc, brl } = require("./_loja");
 
 module.exports = async (req, res) => {
   const id = String((req.query && req.query.id) || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
-  let html = ler("index.html");
+  let html = ler("site.html");
   const base = catalogo().find((p) => p.id === id);
   const [linhas, avs] = base ? await Promise.all([ajustes(`&produto_id=eq.${encodeURIComponent(id)}`), avaliacoes(id)]) : [[], []];
   const linha = linhas[0] || null;
